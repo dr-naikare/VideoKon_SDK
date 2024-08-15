@@ -69,7 +69,7 @@ const Home = () => {
           </ul>
         </nav>
         <div className="mt-6">
-          <a href="#" className="flex items-center text-red-400 hover:text-red-500">
+          <a href="/login" className="flex items-center text-red-400 hover:text-red-500">
             <LogOutIcon/>
             <span className="ml-3">Log out</span>
           </a>

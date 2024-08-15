@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const LoginPage = () => {
+const SignupPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -18,7 +18,7 @@ const LoginPage = () => {
       </div>
       <div className="flex flex-col items-center justify-center w-2/3 bg-gray-100">
         <div className="flex flex-col items-center justify-center w-full max-w-md p-8 space-y-8 bg-white shadow-md rounded-xl">
-          <h2 className="text-2xl font-bold text-center text-blue-600">Log in</h2>
+          <h2 className="text-2xl font-bold text-center text-blue-600">Register</h2>
           <form className="mt-8 space-y-6 w-full" onSubmit={handleSubmit}>
             <div className="rounded-md shadow-sm -space-y-px">
               <div>
@@ -59,12 +59,12 @@ const LoginPage = () => {
                 type="submit"
                 className="group relative flex w-full justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
-                Log in
+                Signup
               </button>
             </div>
           </form>
-        <div className='text-center'>
-          <p className='text-muted-foreground'>Don&apos;t have an account ? <a href="/signup" className='text-blue-500'>register</a></p>
+          <div className='text-center'>
+          <p className='text-muted-foreground'>Already have an account ? <a href="/login" className='text-blue-500'>Login</a></p>
         </div>
         </div>
       </div>
@@ -72,4 +72,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default SignupPage;
