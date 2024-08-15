@@ -1,1 +1,0 @@
-# VideoKon_SDK
