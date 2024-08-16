@@ -6,7 +6,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const registerUser = async (req, res) => {
-    const {  email, password } = req.body;
+    const { username, email, password } = req.body;
 
     try {
         const existingUser = await User.findOne({ email });
@@ -17,7 +17,7 @@ const registerUser = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = new User({
-
+            username,
             email,
             password: hashedPassword
         });
@@ -36,14 +36,12 @@ const loginUser = async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (!user) {
-            return res.status(400).json({ message: 'working fine' });
+            return res.status(400).json({ message: 'Invalid credentials' });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
-
         if (!isMatch) {
-            return res.status(400).json({ message: `invalid credentials the value of ismatch
-            is ${isMatch} and password is ${password} and user.password is ${user.password}` });
+            return res.status(400).json({ message: 'Invalid credentials' });
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
