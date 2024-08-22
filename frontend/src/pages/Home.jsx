@@ -1,4 +1,5 @@
-import { Calendar, Contact, Edit, HomeIcon, LogOutIcon, SwitchCameraIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Calendar, Contact, Edit, HomeIcon, LogOutIcon, PhoneCall, SwitchCameraIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 const Home = () => {
@@ -36,6 +37,10 @@ const Home = () => {
     alert(`Reschedule ${meeting}`);
   };
 
+  const joinMeeting = () => {
+    window.location.href = '/meeting';
+  }
+
   return (
     <div className="flex h-screen">
       {/* Sidebar */}
@@ -62,10 +67,10 @@ const Home = () => {
               <Contact/>
               <a href="#" className="ml-3">Contacts</a>
             </li>
-            <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
+            {/* <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
               <Edit/>
               <a href="#" className="ml-3">Whiteboards</a>
-            </li>
+            </li> */}
           </ul>
         </nav>
         <div className="mt-6">
@@ -102,10 +107,10 @@ const Home = () => {
               <span className="material-icons">group</span>
               <span className="ml-2">Start a meeting</span>
             </button>
-            <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-green-500 text-white hover:bg-green-600">
-              <span className="material-icons">add</span>
-              <span className="ml-2">Join a meeting</span>
-            </button>
+            <Button onClick={joinMeeting} className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-green-500 text-white hover:bg-green-600">
+              <span className="material-icons"><PhoneCall/></span>
+              <span className="ml-2" >Join a meeting</span>
+            </Button>
             <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600">
               <span className="material-icons">schedule</span>
               <span className="ml-2">Schedule a meeting</span>
