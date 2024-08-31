@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import axios from "axios";
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,6 +17,13 @@ const LoginPage = () => {
         password
       });
       console.log('Response:', response.data);
+      if (response.status === 200) {
+        const { redirectUrl, token } = response.data;
+        // Store the token if needed
+        localStorage.setItem('token', token);
+        // Redirect to the specified URL
+        navigate(redirectUrl);
+      }
       // Handle successful login (e.g., store token, redirect)
     } catch (error) {
       console.error('Error logging in:', error);
