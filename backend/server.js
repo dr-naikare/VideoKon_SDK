@@ -36,34 +36,32 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 
 io.on('connection', (socket) => {
-    console.log('a user connected and connection recieved by server',socket.id);
+    console.log(`Client ${socket.id} Connected to server`);
 
     socket.on('join-room', (roomId, userId) => {
-        console.log('join-room recieved by server', userId); 
+        console.log(`Server recieved request to join room ${roomId} by user ${userId}`); 
         socket.join(roomId);
-        console.log(`User ${userId} joined room ${roomId}`);
+        console.log(`User ${userId} joined room ${roomId} successfully`);
         socket.to(roomId).emit('user-connected', userId);
-        console.log( 'user connected sent to client');
-
         socket.on('disconnect', () => {
             socket.to(roomId).emit('user-disconnected', userId);
         });
     });
 
     socket.on('offer', (data) => {
-        console.log('offer recieved by server', data);
+        console.log(`offer by client ${data.offerby} recieved by server`);
         socket.to(data.roomId).emit('offer', data);
-        console.log('offer sent to client');
+        console.log('offer sent to the entire room by server');
     });
 
     socket.on('answer', (data) => {
-        console.log('answer recieved by server', data);
+        console.log(`answer  by client ${data.answerby} recieved by server`);
         socket.to(data.roomId).emit('answer', data);
-        console.log('answer emitted to client');
+       
     });
 
     socket.on('ice-candidate', (data) => {
-        console.log('ice-candidate recieved by server', data);
+        console.log(`ice-candidate  by client ${data.candidateby} recieved by server`);
         socket.to(data.roomId).emit('ice-candidate', data);
         console.log('ice-candidate sent to client');
     });

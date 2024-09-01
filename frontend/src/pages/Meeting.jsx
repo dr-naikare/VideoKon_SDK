@@ -19,52 +19,58 @@ const Meeting = () => {
 
   useEffect(() => {
     // Initialize the socket connection
-    console.log('Connecting to socket server...\n');
+    console.log('requesting connection to socket server...\n');
     socketRef.current = io('http://localhost:5000');
-    console.log('Connected to socket server by sending connection to server\n');
-
+  
     // Join the room
     
     socketRef.current.on('connect', () => {
-      console.log(`Joining room... where roomId = ${roomId} and socketRef.current.id = ${socketRef.current.id}`);
+      console.log(`client : ${socketRef.current.id} is reqesting to join room : ${roomId}`);
       socketRef.current.emit('join-room', roomId, socketRef.current.id);
     });
     
 
     // Handle when another user connects
     socketRef.current.on('user-connected', (userId) => {
-      console.log('user connected recieved by client', userId);
+      console.log(`User : ${userId} connected to the room and received by ${socketRef.current.id}`);
       createOffer();
       console.log('Offer created\n');
     });
 
     // Handle receiving an offer
     socketRef.current.on('offer', async (data) => {
-      console.log('Received offer: by client', data);
+      console.log(`Received offer: by client ${data.offerby}`);
       await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.offer));
 
       const answer = await peerConnectionRef.current.createAnswer();
-      console.log('Created answer: by client', answer);
+      console.log(`Answer created by client ${socketRef.current.id} `);
       await peerConnectionRef.current.setLocalDescription(answer);
-      socketRef.current.emit('answer', { answer, roomId });
-      console.log('Answer sent to server\n');
+      socketRef.current.emit('answer', { answer, roomId, answerby : socketRef.current.id });
+      
     });
 
     // Handle receiving an answer
     socketRef.current.on('answer', async (data) => {
-      console.log('Received answer: by client', data);
+      console.log(`Received answer:  by client ${data.answerby}`);
       await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
     });
 
     // Handle receiving an ICE candidate
     socketRef.current.on('ice-candidate', async (data) => {
       try {
-        console.log('Received ICE candidate: by client', data);
-        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
+        console.log(`Received ICE candidate by : ${data.candidateby} `);
+        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate))
+        .then(() => {
+          console.log(`ICE candidate recieved by ${data.candidateby} added successfully by client ${socketRef.current.id}`);
+        })  
+        .catch((e) => {
+          console.error('Error adding received ice candidate', e);
+        });
       } catch (e) {
         console.error('Error adding received ice candidate', e);
       }
     });
+    
 
     // Clean up when component unmounts
     return () => {
@@ -81,6 +87,8 @@ const Meeting = () => {
 
   useEffect(() => {
     // Initialize the RTCPeerConnection
+
+    console.log('Initializing peer connection...');
     const peerConnection = new RTCPeerConnection({
       iceServers: [
         {
@@ -89,11 +97,21 @@ const Meeting = () => {
       ]
     });
 
+    console.log("Connection state :",peerConnection.connectionState);
+
+    peerConnection.onicegatheringstatechange = () => {
+      console.log('ICE gathering state changed:', peerConnection.iceGatheringState);
+    };
+
+
+
     // Handle ICE candidates
     peerConnection.onicecandidate = (event) => {
+      console.log(`ICE candidate event: occured in client ${ socketRef.current.id}`);
       if (event.candidate) {
-        socketRef.current.emit('ice-candidate', { candidate: event.candidate, roomId });
-        console.log('ICE candidate sent to server by client', event.candidate);
+        console.log(`ICE candidate generated: by ${ socketRef.current.id} }`);
+        socketRef.current.emit('ice-candidate', { candidate: event.candidate, roomId , candidateby : socketRef.current.id });
+        console.log(`ICE candidate sent to server by client ${socketRef.current.id}`);
       }
     };
 
@@ -111,8 +129,8 @@ const Meeting = () => {
   const createOffer = async () => {
     const offer = await peerConnectionRef.current.createOffer();
     await peerConnectionRef.current.setLocalDescription(offer);
-    console.log('Created offer by client and sent to server', offer);
-    socketRef.current.emit('offer', { offer, roomId });
+    console.log(`client : ${socketRef.current.id} created offer : ${offer}`);
+    socketRef.current.emit('offer', { offer, roomId, offerby : socketRef.current.id });
   };
 
   const toggleMute = useCallback(() => {
