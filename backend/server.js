@@ -36,22 +36,35 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 
 io.on('connection', (socket) => {
-    console.log(`Client ${socket.id} Connected to server`);
+    console.log(`Connection request recieved by server from client ${socket.id}`);
 
     socket.on('join-room', (roomId, userId) => {
-        console.log(`Server recieved request to join room ${roomId} by user ${userId}`); 
+
+        console.log(`join-room request recieved by server from client ${userId}`); 
         socket.join(roomId);
         console.log(`User ${userId} joined room ${roomId} successfully`);
         socket.to(roomId).emit('user-connected', userId);
-        socket.on('disconnect', () => {
-            socket.to(roomId).emit('user-disconnected', userId);
-        });
+
+        // Add listener for disconnection event
+         socket.on('User-disconnect', (reason) => {
+        console.log(`User ${userId} disconnected from room ${roomId} - Reason: ${reason}`);
+        socket.leave(roomId);
+        socket.to(roomId).emit('user-disconnected', userId);
+  
+        // Check if the room is empty and clean it up if needed
+        const roomUsers = io.sockets.adapter.rooms.get(roomId);
+        if (roomUsers && roomUsers.size === 0) {
+          console.log(`Room ${roomId} is empty. Cleaning up.`);
+          // Perform cleanup operations (e.g., remove data, release resources)
+        }
+        })
+       
     });
 
     socket.on('offer', (data) => {
         console.log(`offer by client ${data.offerby} recieved by server`);
         socket.to(data.roomId).emit('offer', data);
-        console.log('offer sent to the entire room by server');
+       
     });
 
     socket.on('answer', (data) => {
@@ -65,6 +78,8 @@ io.on('connection', (socket) => {
         socket.to(data.roomId).emit('ice-candidate', data);
         console.log('ice-candidate sent to client');
     });
+
+   
 });
     
 

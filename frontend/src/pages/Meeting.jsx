@@ -1,81 +1,145 @@
-import React , { useCallback,useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaPhone } from 'react-icons/fa';
 import { Button } from '../components/ui/button';
 import io from 'socket.io-client';
 
-
-const Meeting = () => {
-  console.log('Meeting component mounted');
-  const [isMuted, setIsMuted] = useState(false);
-  const [isVideoOn, setIsVideoOn] = useState(false);
+const VideoKon = () => {
+  console.log("meeting page rendered");
+  const [myAudio, setMyAudio] = useState(true);
+  const [myVideo, setMyVideo] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
-  const videoRef = useRef(null);
+  const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
-  const roomId = 'abc'; // Replace with dynamic room ID
+  const roomId = 'abc'; // Replace with a unique room ID
+  let currentUser;
 
+  // This is for first connecting to the server using socket.io
   useEffect(() => {
-    // Initialize the socket connection
-    console.log('requesting connection to socket server...\n');
+    // Create a new RTCPeerConnection instance
+    peerConnectionRef.current = new RTCPeerConnection({
+      iceServers: [
+        {
+          urls: 'stun:stun.l.google.com:19302' // Google's public STUN server
+        }
+      ]
+    });
+
+    // Get user media (audio and video)
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+      .then(stream => {
+        setLocalStream(stream);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+
+        stream.getTracks().forEach(track => peerConnectionRef.current.addTrack(track, stream));
+
+        // Create offer immediately
+        createOffer();
+      })
+      .catch(err => {
+        console.error("Error getting user media:", err);
+      });
+
+    // Connect to the socket server
     socketRef.current = io('http://localhost:5000');
-  
-    // Join the room
-    
+
+    // Handle connection event
     socketRef.current.on('connect', () => {
-      console.log(`client : ${socketRef.current.id} is reqesting to join room : ${roomId}`);
-      socketRef.current.emit('join-room', roomId, socketRef.current.id);
-    });
-    
-
-    // Handle when another user connects
-    socketRef.current.on('user-connected', (userId) => {
-      console.log(`User : ${userId} connected to the room and received by ${socketRef.current.id}`);
-      createOffer();
-      console.log('Offer created\n');
+      currentUser = socketRef.current.id;
+      console.log(`${currentUser} is connected to the server`);
+      socketRef.current.emit('join-room', roomId, currentUser);
     });
 
-    // Handle receiving an offer
-    socketRef.current.on('offer', async (data) => {
-      console.log(`Received offer: by client ${data.offerby}`);
-      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-      const answer = await peerConnectionRef.current.createAnswer();
-      console.log(`Answer created by client ${socketRef.current.id} `);
-      await peerConnectionRef.current.setLocalDescription(answer);
-      socketRef.current.emit('answer', { answer, roomId, answerby : socketRef.current.id });
-      
+    // Handle user connected event
+    socketRef.current.on('user-connected', userId => {
+      console.log(`${userId} connected to the room`);
+      // No need to create an offer here, it's already created for the first user
     });
 
-    // Handle receiving an answer
-    socketRef.current.on('answer', async (data) => {
-      console.log(`Received answer:  by client ${data.answerby}`);
+    // Handle ICE candidate event
+    peerConnectionRef.current.onicecandidate = event => {
+      if (event.candidate) {
+        socketRef.current.emit('ice-candidate', { candidate: event.candidate, roomId });
+        console.log('ICE candidate sent to server by client', event.candidate);
+      }
+    };
+
+    // Handle remote stream track event (This will be triggered during offer creation)
+    peerConnectionRef.current.ontrack = event => {
+      console.log(`Remote stream received by ${currentUser}`);
+      setRemoteStream(event.streams[0]);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
+
+      // Handle track removal
+      event.streams[0].getTracks().forEach(track => {
+        track.onremovetrack = () => {
+          console.log(`Remote stream removed by ${currentUser}`);
+          setRemoteStream(null); // Update the state when the track is removed
+          remoteVideoRef.current.srcObject = null; 
+        };
+      });
+    };
+
+    socketRef.current.on('user-disconnected', userId => {
+      console.log(`${userId} disconnected from the room`);
+      if (userId !== currentUser) {
+        console.log(`Remote stream removed by ${currentUser}`);
+        setRemoteStream(null); // Update the state when the track is removed
+        remoteVideoRef.current.srcObject = null; 
+      }
+    });
+
+    // Handle offer event
+    socketRef.current.on('offer', async data => {
+      console.log(`Offer received from ${data.offerby} by ${currentUser}`);
+      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.offer)).then(
+        async () => {
+          await peerConnectionRef.current.createAnswer().then(
+            async answer => {
+              await peerConnectionRef.current.setLocalDescription(answer).then(
+                () => {
+                  console.log('Local description set successfully');
+                  socketRef.current.emit('answer', { answer, roomId, answerby: currentUser });
+                  console.log(`Answer sent to the server by ${currentUser}`);
+                }
+              );
+            }
+          );
+        }
+      );
+    });
+
+    // Handle answer event
+    socketRef.current.on('answer', async data => {
+      console.log(`Answer received from ${data.answerby} by ${currentUser}`);
       await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
+      console.log(`Remote description set successfully and the signaling state is ${peerConnectionRef.current.signalingState}`);
     });
 
-    // Handle receiving an ICE candidate
-    socketRef.current.on('ice-candidate', async (data) => {
+    // Handle ICE candidate event (from server)
+    socketRef.current.on('ice-candidate', async data => {
       try {
-        console.log(`Received ICE candidate by : ${data.candidateby} `);
-        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate))
-        .then(() => {
-          console.log(`ICE candidate recieved by ${data.candidateby} added successfully by client ${socketRef.current.id}`);
-        })  
-        .catch((e) => {
-          console.error('Error adding received ice candidate', e);
-        });
+        console.log('Received ICE candidate: by client', data);
+        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
       } catch (e) {
         console.error('Error adding received ice candidate', e);
       }
     });
-    
 
-    // Clean up when component unmounts
+    // Clean up resources on component unmount
     return () => {
       console.log('Disconnecting from socket server...');
-      socketRef.current.disconnect();
+      if (socketRef.current) {
+        socketRef.current.emit('disconnect', currentUser);
+        socketRef.current.disconnect();
+      }
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
@@ -85,150 +149,108 @@ const Meeting = () => {
     };
   }, []);
 
-  useEffect(() => {
-    // Initialize the RTCPeerConnection
-
-    console.log('Initializing peer connection...');
-    const peerConnection = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: 'stun:stun.l.google.com:19302' // Google's public STUN server
-        }
-      ]
-    });
-
-    console.log("Connection state :",peerConnection.connectionState);
-
-    peerConnection.onicegatheringstatechange = () => {
-      console.log('ICE gathering state changed:', peerConnection.iceGatheringState);
-    };
-
-
-
-    // Handle ICE candidates
-    peerConnection.onicecandidate = (event) => {
-      console.log(`ICE candidate event: occured in client ${ socketRef.current.id}`);
-      if (event.candidate) {
-        console.log(`ICE candidate generated: by ${ socketRef.current.id} }`);
-        socketRef.current.emit('ice-candidate', { candidate: event.candidate, roomId , candidateby : socketRef.current.id });
-        console.log(`ICE candidate sent to server by client ${socketRef.current.id}`);
-      }
-    };
-
-    // Handle receiving remote stream
-    peerConnection.ontrack = (event) => {
-      setRemoteStream(event.streams[0]);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
-    };
-
-    peerConnectionRef.current = peerConnection;
-  }, []);
-
+  // Create an offer to start the connection (Call this immediately after getting user media)
   const createOffer = async () => {
-    const offer = await peerConnectionRef.current.createOffer();
-    await peerConnectionRef.current.setLocalDescription(offer);
-    console.log(`client : ${socketRef.current.id} created offer : ${offer}`);
-    socketRef.current.emit('offer', { offer, roomId, offerby : socketRef.current.id });
+    await peerConnectionRef.current.createOffer().then(
+      async offer => {
+        await peerConnectionRef.current.setLocalDescription(offer).then(
+          () => {
+            console.log('Local description set successfully');
+            socketRef.current.emit('offer', { offer, roomId, offerby: currentUser });
+            console.log(`Offer sent to the server by ${currentUser}`);
+          }
+        );
+      }
+    );
   };
 
-  const toggleMute = useCallback(() => {
-    setIsMuted(!isMuted);
+  // useEffect to log audio and video states
+  useEffect(() => {
+    console.log("audio is", myAudio);
+    console.log("video is", myVideo);
+  }, [myAudio, myVideo]);
+
+  // Toggle mute functionality
+  const toggleMute = () => {
+    setMyAudio(!myAudio);
     if (localStream) {
-      localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
-    }
-  },[isMuted, localStream]);
-
-  const toggleVideo = async () => {
-    try {
-      if (!isVideoOn) {
-        // Request video access
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setLocalStream(stream);
-        setIsVideoOn(true);
-
-        // Display the video preview
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
-        // Add tracks to peer connection
-        stream.getTracks().forEach(track => peerConnectionRef.current.addTrack(track, stream));
-      } else {
-        // Stop the video stream
-        localStream.getTracks().forEach(track => track.stop());
-        setLocalStream(null);
-        setIsVideoOn(false);
-      }
-    } catch (error) {
-      console.error('Error accessing video:', error);
+      const audioTrack = localStream.getAudioTracks()[0];
+      audioTrack.enabled = !audioTrack.enabled;
     }
   };
 
-  const toggleScreenShare = async () => {
+  // Toggle video functionality
+  const toggleVideo = () => {
+    setMyVideo(!myVideo);
+    if (localStream) {
+      const videoTrack = localStream.getVideoTracks()[0];
+      videoTrack.enabled = !videoTrack.enabled;
+    }
+  };
+
+  // Toggle screen share functionality (not implemented yet)
+  const toggleScreenShare = () => {
     if (!isScreenSharing) {
-      try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        setLocalStream(stream);
-        setIsScreenSharing(true);
-
-        // Display the screen share preview
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-
-        // Add tracks to peer connection
-        stream.getTracks().forEach(track => peerConnectionRef.current.addTrack(track, stream));
-      } catch (error) {
-        console.error('Error accessing screen share:', error);
-      }
+      // Start screen share logic
+      console.log("Start screen sharing...");
     } else {
-      // Stop the screen share stream
-      localStream.getTracks().forEach(track => track.stop());
-      setLocalStream(null);
-      setIsScreenSharing(false);
+      // Stop screen share logic
+      console.log("Stop screen sharing...");
     }
+    setIsScreenSharing(!isScreenSharing);
   };
 
+  // End meeting functionality
   const endMeeting = () => {
     // End meeting logic, then redirect
+    if (socketRef.current) {
+      socketRef.current.emit('User-disconnect', currentUser);
+      socketRef.current.disconnect();
+    }
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+    }
     window.location.href = '/';
   };
 
   return (
     <div className="flex flex-col items-center h-screen bg-gray-100">
       <div className="bg-blue-600 w-full py-4 text-center text-white">
-        <h2 className="text-2xl font-semibold">Meeting</h2>
+        <h2 className="text-2xl font-semibold">VideoKon</h2>
       </div>
       <div className="flex-1 flex justify-center items-center bg-gray-800 w-full">
         <div className="text-center text-white">
           <video
-            ref={videoRef}
+            ref={localVideoRef}
             autoPlay
             playsInline
-            className={`rounded-full w-36 h-36 mx-auto mb-4 ${isVideoOn ? '' : 'hidden'}`}
+            muted
+            className={`rounded-full w-36 h-36 mx-auto mb-4 ${myVideo ? '' : 'hidden'}`}
           />
           <video
             ref={remoteVideoRef}
             autoPlay
             playsInline
+            muted
             className={`rounded-full w-36 h-36 mx-auto mb-4 ${remoteStream ? '' : 'hidden'}`}
           />
           <img
             src="https://via.placeholder.com/150"
             alt="User"
-            className={`rounded-full w-36 h-36 mx-auto mb-4 ${isVideoOn ? 'hidden' : ''}`}
+            className={`rounded-full w-36 h-36 mx-auto mb-4 ${myVideo ? 'hidden' : ''}`}
           />
           <p>Waiting for other participants to join...</p>
         </div>
       </div>
       <div className="flex justify-around w-full max-w-md py-4 bg-white border-t border-gray-300">
         <Button variant="ghost" onClick={toggleMute}>
-          {isMuted ? <FaMicrophoneSlash className="text-xl" /> : <FaMicrophone className="text-xl" />}
+          {myAudio ? <FaMicrophone className="text-xl" /> : <FaMicrophoneSlash className="text-xl" />}
         </Button>
         <Button variant="ghost" onClick={toggleVideo}>
-          {isVideoOn ? <FaVideoSlash className="text-xl" /> : <FaVideo className="text-xl" />}
+          {myVideo ? <FaVideo className="text-xl" /> : <FaVideoSlash className="text-xl" />}
         </Button>
         <Button variant="ghost" onClick={toggleScreenShare}>
           <FaDesktop className="text-xl" />
@@ -241,4 +263,4 @@ const Meeting = () => {
   );
 };
 
-export default React.memo(Meeting);
+export default VideoKon;
