@@ -46,7 +46,7 @@ const Home = () => {
       {/* Sidebar */}
       <div className="w-1/4 bg-gray-900 text-white p-6 flex flex-col">
         <div className="flex items-center mb-8">
-          <img src="logo.png" alt="Logo" className="w-10 h-10 mr-2" />
+          <img src="/logo.jpg" alt="Logo" className="rounded-full w-10 h-10 mr-2" />
           <h1 className="text-2xl font-bold text-blue-400">VideoKon</h1>
         </div>
         <nav className="flex-1">
