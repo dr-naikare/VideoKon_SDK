@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -12,7 +14,7 @@ const LoginPage = () => {
     // Handle login logic here
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`http://localhost:5000/api/auth/login`, {
         email,
         password
       });
@@ -25,8 +27,13 @@ const LoginPage = () => {
         // Redirect to the specified URL
         navigate(redirectUrl, { state: { currentUser } });
       }
+      toast.success('Login successful');
       // Handle successful login (e.g., store token, redirect)
+      setLoading(true);
+      setEmail('');
+      setPassword('');
     } catch (error) {
+      toast.error('Login failed');
       console.error('Error logging in:', error);
       // Handle login error (e.g., show error message)
     }
@@ -81,6 +88,7 @@ const LoginPage = () => {
             <div>
               <button
                 type="submit"
+                disabled={loading}
                 className="group relative flex w-full justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Log in

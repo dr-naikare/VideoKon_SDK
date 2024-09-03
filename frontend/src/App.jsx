@@ -5,6 +5,7 @@ import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
 import MeetingPage from './pages/Meeting'
 import PrivateRoute from './components/PrivateRoutes'
+import { Toaster } from 'react-hot-toast'
 
 const router = createBrowserRouter([
   {
@@ -33,6 +34,7 @@ function App() {
 
   return (
    <>
+   <Toaster/>
     <RouterProvider router={router}/>
    </>
   )
