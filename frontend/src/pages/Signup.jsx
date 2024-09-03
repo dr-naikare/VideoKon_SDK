@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast';
 
 const SignupPage = () => {
   const [email, setEmail] = useState('');
   const [name , setName] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -13,7 +15,7 @@ const SignupPage = () => {
     // Handle login logic here
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post(`http://localhost:5000/api/auth/register`, {
         name,
         email,
         password
@@ -25,8 +27,13 @@ const SignupPage = () => {
           navigate('/login');
         }
       });
-      
+      toast.success('Signup successful');
+      setLoading(true);
+      setEmail('');
+      setName('');
+      setPassword('');
     } catch (error) {
+      toast.error('Signup failed');
       console.error('Error signing up:', error);
       // Handle signup error (e.g., show error message)
     }
@@ -99,6 +106,7 @@ const SignupPage = () => {
             <div>
               <button
                 type="submit"
+                disabled={loading}
                 className="group relative flex w-full justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Signup
