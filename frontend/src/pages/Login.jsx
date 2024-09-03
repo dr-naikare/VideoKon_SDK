@@ -18,11 +18,12 @@ const LoginPage = () => {
       });
       console.log('Response:', response.data);
       if (response.status === 200) {
-        const { redirectUrl, token } = response.data;
-        // Store the token if needed
+        const { redirectUrl, token, currentUser } = response.data;
+        // Store the token and currentUser if needed
         localStorage.setItem('token', token);
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
         // Redirect to the specified URL
-        navigate(redirectUrl);
+        navigate(redirectUrl, { state: { currentUser } });
       }
       // Handle successful login (e.g., store token, redirect)
     } catch (error) {

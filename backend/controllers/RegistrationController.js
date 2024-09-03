@@ -4,7 +4,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const registerUser = async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password,name } = req.body;
 
     try {
         const existingUser = await User.findOne({ email });
@@ -13,6 +13,7 @@ const registerUser = async (req, res) => {
         }
 
         const newUser = new User({
+            name,
             email,
             password
         });

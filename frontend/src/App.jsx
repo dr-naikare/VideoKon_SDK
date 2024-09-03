@@ -4,11 +4,16 @@ import Home from './pages/Home'
 import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
 import MeetingPage from './pages/Meeting'
+import PrivateRoute from './components/PrivateRoutes'
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home/>
+    element: 
+    <PrivateRoute>
+      <Home/>
+    </PrivateRoute>
+  
   },
   {
     path: "/login",

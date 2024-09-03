@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import axios from "axios";
+import { useNavigate } from 'react-router-dom'
 
 const SignupPage = () => {
   const [email, setEmail] = useState('');
+  const [name , setName] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -11,17 +14,24 @@ const SignupPage = () => {
 
     try {
       const response = await axios.post('http://localhost:5000/api/auth/register', {
-
+        name,
         email,
         password
+      }).then((response) => {
+        console.log(response.data);
+        if (response.status === 201) {
+          console.log('User registered successfully');
+          // Redirect to the specified URL
+          navigate('/login');
+        }
       });
-      console.log('Response:', response.data);
-      // Handle successful signup (e.g., show success message, redirect)
+      
     } catch (error) {
       console.error('Error signing up:', error);
       // Handle signup error (e.g., show error message)
     }
 
+    console.log('Name:', name);
     console.log('Email:', email);
     console.log('Password:', password);
   };
@@ -53,6 +63,22 @@ const SignupPage = () => {
                 />
               </div>
               <div>
+                <label htmlFor="name" className="sr-only">
+                  Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  placeholder="Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>    
+              <div>
                 <label htmlFor="password" className="sr-only">
                   Password
                 </label>
@@ -68,6 +94,7 @@ const SignupPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              
             </div>
             <div>
               <button
