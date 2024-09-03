@@ -1,23 +1,32 @@
-import { Button } from '@/components/ui/button';
-import { Calendar, Contact, Edit, HomeIcon, LogOutIcon, PhoneCall, SwitchCameraIcon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import {
+  Calendar,
+  Contact,
+  Edit,
+  HomeIcon,
+  LogOutIcon,
+  PhoneCall,
+  SwitchCameraIcon,
+} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import axios from "axios";
+//import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 const Home = () => {
-  const [user, setUser] = useState({
-    name: 'John Doe',
-    avatar: 'avatar-placeholder.png',
-  });
+  const location = useLocation();
+  const[user, setUser] = useState({name: ''});
   const [meetings, setMeetings] = useState([
-    { name: 'Team Sync', time: '10:00 AM' },
-    { name: 'Project Review', time: '2:00 PM' },
+    { name: "Team Sync", time: "10:00 AM" },
+    { name: "Project Review", time: "2:00 PM" },
   ]);
   const [calendar, setCalendar] = useState([
-    { date: 'August 5, 2024' },
-    { date: 'August 6, 2024' },
+    { date: "August 5, 2024" },
+    { date: "August 6, 2024" },
   ]);
   const [invitations, setInvitations] = useState([
-    { inviter: 'Alice', event: 'Team Lunch' },
-    { inviter: 'Bob', event: 'Weekly Standup' },
+    { inviter: "Alice", event: "Team Lunch" },
+    { inviter: "Bob", event: "Weekly Standup" },
   ]);
   const [insights, setInsights] = useState({
     hostedMeetings: 5,
@@ -25,6 +34,49 @@ const Home = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        Navigate("/login");
+        return;
+      }
+
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/auth/user",
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log("User data:", response.data);
+        setUser(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setError(error);
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, [location]);
+
+  const getGreeting = () => {
+    const currentHour = new Date().getHours();
+    if (currentHour < 12) {
+      return "Good morning";
+    } else if (currentHour < 18) {
+      return "Good afternoon";
+    } else {
+      return "Good evening";
+    }
+  };
+
+  const greeting = getGreeting();
 
   useEffect(() => {
     // Mock data setup complete, no API calls needed for UI
@@ -38,8 +90,8 @@ const Home = () => {
   };
 
   const joinMeeting = () => {
-    window.location.href = '/meeting';
-  }
+    window.location.href = "/meeting";
+  };
 
   return (
     <div className="flex h-screen">
@@ -52,20 +104,28 @@ const Home = () => {
         <nav className="flex-1">
           <ul className="space-y-2">
             <li className="flex items-center py-2 px-4 bg-blue-800 rounded-lg">
-              <HomeIcon/>
-              <a href="#" className="ml-3 text-blue-200 hover:text-white">Home</a>
+              <HomeIcon />
+              <a href="#" className="ml-3 text-blue-200 hover:text-white">
+                Home
+              </a>
             </li>
             <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-              <Calendar/>
-              <a href="#" className="ml-3">Calendar</a>
+              <Calendar />
+              <a href="#" className="ml-3">
+                Calendar
+              </a>
             </li>
             <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-              <SwitchCameraIcon/>
-              <a href="#" className="ml-3">Recording</a>
+              <SwitchCameraIcon />
+              <a href="#" className="ml-3">
+                Recording
+              </a>
             </li>
             <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-              <Contact/>
-              <a href="#" className="ml-3">Contacts</a>
+              <Contact />
+              <a href="#" className="ml-3">
+                Contacts
+              </a>
             </li>
             {/* <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
               <Edit/>
@@ -74,8 +134,11 @@ const Home = () => {
           </ul>
         </nav>
         <div className="mt-6">
-          <a href="/login" className="flex items-center text-red-400 hover:text-red-500">
-            <LogOutIcon/>
+          <a
+            href="/login"
+            className="flex items-center text-red-400 hover:text-red-500"
+          >
+            <LogOutIcon />
             <span className="ml-3">Log out</span>
           </a>
         </div>
@@ -86,16 +149,29 @@ const Home = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Welcome Section */}
           <div className="bg-white p-6 rounded-lg shadow-lg">
-            <h2 className="text-xl font-semibold">Good morning, {user.name}!</h2>
+            <h2 className="text-xl font-semibold">
+              {greeting}, {user.name}!
+            </h2>
             <div className="flex items-center my-4">
-              <img src={user.avatar} alt="Avatar" className="w-16 h-16 rounded-full mr-4" />
+              <img
+                src={user.avatar}
+                alt="Avatar"
+                className="w-16 h-16 rounded-full mr-4"
+              />
               <p>Your agenda today:</p>
             </div>
             <ul className="space-y-2">
               {meetings.map((meeting, index) => (
                 <li key={index} className="flex justify-between items-center">
-                  <span>{meeting.name} {meeting.time}</span>
-                  <button onClick={() => handleReschedule(meeting.name)} className="text-blue-500 hover:underline">Reschedule</button>
+                  <span>
+                    {meeting.name} {meeting.time}
+                  </span>
+                  <button
+                    onClick={() => handleReschedule(meeting.name)}
+                    className="text-blue-500 hover:underline"
+                  >
+                    Reschedule
+                  </button>
                 </li>
               ))}
             </ul>
@@ -107,9 +183,14 @@ const Home = () => {
               <span className="material-icons">group</span>
               <span className="ml-2">Start a meeting</span>
             </button>
-            <Button onClick={joinMeeting} className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-green-500 text-white hover:bg-green-600">
-              <span className="material-icons"><PhoneCall/></span>
-              <span className="ml-2" >Join a meeting</span>
+            <Button
+              onClick={joinMeeting}
+              className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-green-500 text-white hover:bg-green-600"
+            >
+              <span className="material-icons">
+                <PhoneCall />
+              </span>
+              <span className="ml-2">Join a meeting</span>
             </Button>
             <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600">
               <span className="material-icons">schedule</span>
@@ -126,7 +207,9 @@ const Home = () => {
               <div className="w-full h-48 bg-gray-200 rounded-lg">
                 {/* Render Calendar Data */}
                 {calendar.map((day, index) => (
-                  <div key={index} className="p-2">{day.date}</div>
+                  <div key={index} className="p-2">
+                    {day.date}
+                  </div>
                 ))}
               </div>
             </div>
@@ -138,8 +221,12 @@ const Home = () => {
             <ul className="mt-4 space-y-2">
               {invitations.map((invitation, index) => (
                 <li key={index} className="flex justify-between items-center">
-                  <span>{invitation.inviter} invited you to {invitation.event}</span>
-                  <button className="text-blue-500 hover:underline">RSVP</button>
+                  <span>
+                    {invitation.inviter} invited you to {invitation.event}
+                  </span>
+                  <button className="text-blue-500 hover:underline">
+                    RSVP
+                  </button>
                 </li>
               ))}
             </ul>

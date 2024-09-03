@@ -32,9 +32,14 @@ const VideoKon = () => {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then(stream => {
         setLocalStream(stream);
+        console.log('Local stream obtained:', stream.getTracks().map(track => track.kind).join(', '));
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
+
+        stream.getAudioTracks().forEach(track => {
+          console.log('Local audio track obtained:', track);
+        });
 
         stream.getTracks().forEach(track => peerConnectionRef.current.addTrack(track, stream));
 
@@ -76,6 +81,11 @@ const VideoKon = () => {
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
+
+      //to check if the audio track is received
+      event.streams[0].getAudioTracks().forEach(track => {
+        console.log('Remote audio track received:', track);
+      });
 
       // Handle track removal
       event.streams[0].getTracks().forEach(track => {
@@ -176,6 +186,7 @@ const VideoKon = () => {
     if (localStream) {
       const audioTrack = localStream.getAudioTracks()[0];
       audioTrack.enabled = !audioTrack.enabled;
+      console.log('Audio track enabled:', audioTrack.enabled);
     }
   };
 
@@ -185,19 +196,56 @@ const VideoKon = () => {
     if (localStream) {
       const videoTrack = localStream.getVideoTracks()[0];
       videoTrack.enabled = !videoTrack.enabled;
+      console.log('Video track enabled:', videoTrack.enabled);
     }
   };
 
   // Toggle screen share functionality (not implemented yet)
-  const toggleScreenShare = () => {
+  const toggleScreenShare = async () => {
     if (!isScreenSharing) {
-      // Start screen share logic
-      console.log("Start screen sharing...");
+      try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = screenStream.getVideoTracks()[0];
+  
+        // Replace the video track in the peer connection with the screen share track
+        const sender = peerConnectionRef.current.getSenders().find(s => s.track.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(screenTrack);
+        }
+  
+        // Update the local video element to show the screen share
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = screenStream;
+        }
+  
+        screenTrack.onended = () => {
+          // Revert back to the original video track when screen sharing stops
+          const videoTrack = localStream.getVideoTracks()[0];
+          if (sender) {
+            sender.replaceTrack(videoTrack);
+          }
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = localStream;
+          }
+          setIsScreenSharing(false);
+        };
+  
+        setIsScreenSharing(true);
+      } catch (err) {
+        console.error("Error sharing screen:", err);
+      }
     } else {
       // Stop screen share logic
-      console.log("Stop screen sharing...");
+      const videoTrack = localStream.getVideoTracks()[0];
+      const sender = peerConnectionRef.current.getSenders().find(s => s.track.kind === 'video');
+      if (sender) {
+        sender.replaceTrack(videoTrack);
+      }
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+      }
+      setIsScreenSharing(false);
     }
-    setIsScreenSharing(!isScreenSharing);
   };
 
   // End meeting functionality
@@ -221,30 +269,29 @@ const VideoKon = () => {
       <div className="bg-blue-600 w-full py-4 text-center text-white">
         <h2 className="text-2xl font-semibold">VideoKon</h2>
       </div>
-      <div className="flex-1 flex justify-center items-center bg-gray-800 w-full">
-        <div className="text-center text-white">
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`rounded-full w-36 h-36 mx-auto mb-4 ${myVideo ? '' : 'hidden'}`}
-          />
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`rounded-full w-36 h-36 mx-auto mb-4 ${remoteStream ? '' : 'hidden'}`}
-          />
-          <img
-            src="https://via.placeholder.com/150"
-            alt="User"
-            className={`rounded-full w-36 h-36 mx-auto mb-4 ${myVideo ? 'hidden' : ''}`}
-          />
-          <p>Waiting for other participants to join...</p>
-        </div>
-      </div>
+      <div className="flex-1 flex justify-center items-center bg-gray-800 w-full relative">
+  <video
+    ref={remoteVideoRef}
+    autoPlay
+    playsInline
+    className={`max-w-full max-h-full object-contain ${remoteStream ? '' : 'hidden'}`}
+  />
+  <video
+    ref={localVideoRef}
+    autoPlay
+    playsInline
+    muted
+    className={`absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white ${myVideo ? '' : 'hidden'}`}
+  />
+  <img
+    src="https://via.placeholder.com/150"
+    alt="User"
+    className={`absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white ${myVideo ? 'hidden' : ''}`}
+  />
+  {!remoteStream && (
+    <p className="absolute text-white text-lg">Waiting for other participants to join...</p>
+  )}
+</div>
       <div className="flex justify-around w-full max-w-md py-4 bg-white border-t border-gray-300">
         <Button variant="ghost" onClick={toggleMute}>
           {myAudio ? <FaMicrophone className="text-xl" /> : <FaMicrophoneSlash className="text-xl" />}

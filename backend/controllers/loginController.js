@@ -10,6 +10,7 @@ const loginUser = async (req, res) => {
 
     try {
         const user = await User.findOne({ email });
+        console.log(user.name);
         
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
@@ -23,7 +24,11 @@ const loginUser = async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        res.status(200).json({ message: 'Login successful', redirectUrl: '/', token });
+        res.status(200).json({ message: 'Login successful', redirectUrl: '/', currentUser : {
+            id: user._id,
+            name: user.name,
+            email: user.email
+        } ,token });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }
