@@ -1,6 +1,6 @@
 | Modern                           | Authenticated                            | Meetings                                     |
 | ----------------------------------- | ----------------------------------- | ------------------------------------------- |
-| ![cat](https://example.com/cat.png) | ![dog](https://example.com/dog.png) | ![lizzard](https://example.com/lizzard.png) |
+| ![home](https://github.com/dr-naikare/VideoKon_SDK/blob/main/Media/Home.png) | ![login](https://github.com/dr-naikare/VideoKon_SDK/blob/main/Media/Login.png) | ![meeting](https://github.com/dr-naikare/VideoKon_SDK/blob/main/Media/Meetings.png) |
 
 
 
