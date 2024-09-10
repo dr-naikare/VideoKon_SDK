@@ -195,7 +195,7 @@ const Home = () => {
       </div>
 
       {/* Main Content */}
-      <div className="w-3/4 bg-gray-100 p-8">
+      <div className="w-full bg-gray-100 p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Welcome Section */}
           <div className="bg-white p-6 rounded-lg shadow-lg">
