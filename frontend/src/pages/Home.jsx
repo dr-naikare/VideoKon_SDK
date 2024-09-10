@@ -7,12 +7,14 @@ import {
   GroupIcon,
   HomeIcon,
   LogOutIcon,
+  Menu,
   PhoneCall,
   SwitchCameraIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"; // Assuming ShadCN's Sheet component is here
 //import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 const Home = () => {
@@ -97,8 +99,8 @@ const Home = () => {
 
   return (
     <div className="flex h-screen">
-      {/* Sidebar */}
-      <div className="w-1/4 bg-gray-900 text-white p-6 flex flex-col">
+      {/* Sidebar for desktop */}
+      <div className="hidden md:block w-1/4 bg-gray-900 text-white p-6 flex-col">
         <div className="flex items-center mb-8">
           <img src="/logo.jpg" alt="Logo" className="rounded-full w-10 h-10 mr-2" />
           <h1 className="text-2xl font-bold text-blue-400">VideoKon</h1>
@@ -129,21 +131,67 @@ const Home = () => {
                 Contacts
               </a>
             </li>
-            {/* <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-              <Edit/>
-              <a href="#" className="ml-3">Whiteboards</a>
-            </li> */}
           </ul>
         </nav>
         <div className="mt-6">
-          <a
-            href="/login"
-            className="flex items-center text-red-400 hover:text-red-500"
-          >
+          <a href="/login" className="flex items-center text-red-400 hover:text-red-500">
             <LogOutIcon />
             <span className="ml-3">Log out</span>
           </a>
         </div>
+      </div>
+
+      {/* Sidebar for mobile (Sheet) */}
+      <div className="md:hidden fixed">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button className="m-4">
+              <Menu /> {/* Hamburger Icon */}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-6 bg-gray-900 text-white">
+            <SheetHeader>
+              <SheetTitle className="flex items-center">
+                <img src="/logo.jpg" alt="Logo" className="rounded-full w-10 h-10 mr-2" />
+                <h1 className="text-2xl font-bold text-blue-400">VideoKon</h1>
+              </SheetTitle>
+            </SheetHeader>
+            <nav className="space-y-4">
+              <ul className="space-y-2">
+                <li className="flex items-center py-2 px-4 bg-blue-800 rounded-lg">
+                  <HomeIcon />
+                  <a href="#" className="ml-3 text-blue-200 hover:text-white">
+                    Home
+                  </a>
+                </li>
+                <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
+                  <Calendar />
+                  <a href="#" className="ml-3">
+                    Calendar
+                  </a>
+                </li>
+                <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
+                  <SwitchCameraIcon />
+                  <a href="#" className="ml-3">
+                    Recording
+                  </a>
+                </li>
+                <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
+                  <Contact />
+                  <a href="#" className="ml-3">
+                    Contacts
+                  </a>
+                </li>
+              </ul>
+            </nav>
+            <div className="mt-6">
+              <a href="/login" className="flex items-center text-red-400 hover:text-red-500">
+                <LogOutIcon />
+                <span className="ml-3">Log out</span>
+              </a>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
 
       {/* Main Content */}
