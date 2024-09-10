@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import {
   Calendar,
+  CalendarCheck,
   Contact,
   Edit,
+  GroupIcon,
   HomeIcon,
   LogOutIcon,
   PhoneCall,
@@ -90,7 +92,7 @@ const Home = () => {
   };
 
   const joinMeeting = () => {
-    window.location.href = "/meeting";
+    window.location.href = "/lobby";
   };
 
   return (
@@ -180,7 +182,7 @@ const Home = () => {
           {/* Meeting Actions */}
           <div className="bg-white p-6 rounded-lg shadow-lg grid grid-cols-1 gap-4">
             <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
-              <span className="material-icons">group</span>
+              <span className="material-icons"><GroupIcon/></span>
               <span className="ml-2">Start a meeting</span>
             </button>
             <Button
@@ -193,7 +195,7 @@ const Home = () => {
               <span className="ml-2">Join a meeting</span>
             </Button>
             <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600">
-              <span className="material-icons">schedule</span>
+              <span className="material-icons"><CalendarCheck/></span>
               <span className="ml-2">Schedule a meeting</span>
             </button>
           </div>
