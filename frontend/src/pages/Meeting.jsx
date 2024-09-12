@@ -5,8 +5,8 @@ import io from 'socket.io-client';
 
 const VideoKon = () => {
   console.log("meeting page rendered");
-  const [myAudio, setMyAudio] = useState(true);
-  const [myVideo, setMyVideo] = useState(true);
+  const [myAudio, setMyAudio] = useState(false);
+  const [myVideo, setMyVideo] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -147,7 +147,7 @@ const VideoKon = () => {
     return () => {
       console.log('Disconnecting from socket server...');
       if (socketRef.current) {
-        socketRef.current.emit('disconnect', currentUser);
+        // socketRef.current.emit('User-disconnect', currentUser); // This is not needed as the server will handle it
         socketRef.current.disconnect();
       }
       if (localStream) {
