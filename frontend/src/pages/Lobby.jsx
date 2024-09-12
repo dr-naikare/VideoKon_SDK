@@ -116,11 +116,13 @@ const LobbyPage = () => {
   };
 
   return (
-    <>
-      <div className="bg-gray-100 p-5">
-        <img src="/logo.jpg" alt="logo" className="w-10 h-10 mr-2 rounded-md" />
+    <div className="h-screen lg:overflow-hidden">
+      <div className="p-5">
+        <a href="/">
+          <img src="/logo.jpg" alt="logo" className="w-10 h-10 mr-2 rounded-md" />
+        </a>
       </div>
-      <div className="min-h-screen flex flex-col-reverse lg:flex-row items-center justify-between bg-gray-100 p-8">
+      <div className="lg:h-[90vh] h-screen flex flex-col-reverse lg:flex-row items-center justify-betwee p-8">
         {/* Left Section: Video Call and Inputs */}
         <div className="lg:w-1/2 w-full mt-8 mx-5 lg:mt-0 flex justify-center items-center">
           <div className="relative w-full h-96 bg-gray-200 rounded-lg">
@@ -131,7 +133,7 @@ const LobbyPage = () => {
             ></video>
 
             {/* Mic Level Display */}
-            <div className="w-full mt-4 text-center mb-4">
+            <div className="w-full mt-4 text-center pb-4">
               <p className="text-lg mb-2">Mic Check:</p>
               <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden">
                 <div
@@ -201,7 +203,7 @@ const LobbyPage = () => {
           <p className="text-blue-600 hover:underline cursor-pointer">Learn more about VideoKon</p>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

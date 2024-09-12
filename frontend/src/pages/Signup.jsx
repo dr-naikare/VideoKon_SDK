@@ -44,11 +44,11 @@ const SignupPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <div className="flex flex-col items-center justify-center w-1/3 bg-blue-600 p-8">
+    <div className="flex flex-col md:flex-row min-h-screen">
+      <div className="flex flex-col items-center w-full justify-center md:w-1/3 bg-blue-600 p-8">
         <h1 className="text-4xl font-bold text-white mb-8">VideoKon</h1>
       </div>
-      <div className="flex flex-col items-center justify-center w-2/3 bg-gray-100">
+      <div className="flex flex-col items-center w-full pt-4 justify-center md:w-2/3 bg-gray-100 h-[78vh] md:h-auto">
         <div className="flex flex-col items-center justify-center w-full max-w-md p-8 space-y-8 bg-white shadow-md rounded-xl">
           <h2 className="text-2xl font-bold text-center text-blue-600">Register</h2>
           <form className="mt-8 space-y-6 w-full" onSubmit={handleSubmit}>
