@@ -147,6 +147,7 @@ const VideoKon = () => {
     return () => {
       console.log('Disconnecting from socket server...');
       if (socketRef.current) {
+        // socketRef.current.emit('User-disconnect', currentUser); // This is not needed as the server will handle it
         socketRef.current.disconnect();
       }
       if (localStream) {
