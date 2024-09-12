@@ -116,13 +116,13 @@ const LobbyPage = () => {
   };
 
   return (
-    <div className="h-screen lg:overflow-hidden">
+    <div className="h-auto md:h-screen lg:overflow-hidden">
       <div className="p-5">
         <a href="/">
           <img src="/logo.jpg" alt="logo" className="w-10 h-10 mr-2 rounded-md" />
         </a>
       </div>
-      <div className="lg:h-[90vh] h-screen flex flex-col-reverse lg:flex-row items-center justify-betwee p-8">
+      <div className="lg:h-[90vh] h-auto flex flex-col-reverse lg:flex-row items-center justify-betwee p-8">
         {/* Left Section: Video Call and Inputs */}
         <div className="lg:w-1/2 w-full mt-8 mx-5 lg:mt-0 flex justify-center items-center">
           <div className="relative w-full h-96 bg-gray-200 rounded-lg">
@@ -146,9 +146,8 @@ const LobbyPage = () => {
             {/* Camera Toggle */}
             <Button
               variant="outline"
-              className={`absolute bottom-4 left-4 ${
-                isCameraOn ? "bg-green-600" : "bg-red-600"
-              } text-white font-bold px-4 py-2`}
+              className={`absolute bottom-4 left-4 ${isCameraOn ? "bg-green-600" : "bg-red-600"
+                } text-white font-bold px-4 py-2`}
               onClick={() => setIsCameraOn(!isCameraOn)}
             >
               {isCameraOn ? <CameraIcon /> : <CameraOffIcon />}
@@ -157,9 +156,8 @@ const LobbyPage = () => {
             {/* Microphone Toggle */}
             <Button
               variant="outline"
-              className={`absolute bottom-4 right-4 ${
-                isMicOn ? "bg-green-600" : "bg-red-600"
-              } text-white font-bold px-4 py-2`}
+              className={`absolute bottom-4 right-4 ${isMicOn ? "bg-green-600" : "bg-red-600"
+                } text-white font-bold px-4 py-2`}
               onClick={() => setIsMicOn(!isMicOn)}
             >
               {isMicOn ? <MicIcon /> : <MicOffIcon />}
@@ -175,28 +173,30 @@ const LobbyPage = () => {
           <p className="mb-6 text-gray-600">Connect, collaborate, and celebrate from anywhere with Our Platform.</p>
 
           {/* New Meeting and Join Form */}
-          <div className="flex mb-6 space-x-2">
+          <div className="flex flex-col md:flex-row mb-6 md:space-x-2 justify-center items-center">
             <Button
               variant="outline"
-              className="bg-blue-600 hover:bg-blue-700 hover:text-white text-white font-bold px-4 py-2"
+              className="bg-blue-600 hover:bg-blue-700 hover:text-white text-white font-bold px-4 py-2 mb-2 w-full md:w-auto"
               onClick={handleNewMeeting}
             >
               New Meeting
             </Button>
 
-            <Input
-              className="w-48 border px-4 py-2"
-              placeholder="Enter a code or link"
-              value={meetingCode}
-              onChange={(e) => setMeetingCode(e.target.value)}
-            />
+            <div className="flex space-x-2">
+              <Input
+                className="md:w-48 border md:px-4 py-2 mb-2 w-full"
+                placeholder="Enter a code or link"
+                value={meetingCode}
+                onChange={(e) => setMeetingCode(e.target.value)}
+              />
 
-            <Button
-              className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2"
-              onClick={handleJoinMeeting}
-            >
-              Join
-            </Button>
+              <Button
+                className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2 mb-2"
+                onClick={handleJoinMeeting}
+              >
+                Join
+              </Button>
+            </div>
           </div>
 
           {/* Learn more link */}
