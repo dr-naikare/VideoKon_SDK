@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaPhone } from 'react-icons/fa';
+import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaPhone, FaUsers, FaComment, FaTimes, FaRecordVinyl } from 'react-icons/fa';
 import { Button } from '../components/ui/button';
 import io from 'socket.io-client';
 
@@ -14,6 +14,10 @@ const VideoKon = () => {
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
+  const [activePanel, setActivePanel] = useState(null); // State to manage active panel
+  const [participants, setParticipants] = useState([]);
+  const [messages, setMessages] = useState([]); // Chat messages
+  const [currentMessage, setCurrentMessage] = useState(''); // Current message input
   const roomId = 'abc'; // Replace with a unique room ID
   let currentUser;
 
@@ -143,11 +147,15 @@ const VideoKon = () => {
       }
     });
 
+    // Handle incoming chat messages
+    socketRef.current.on('chat-message', message => {
+      setMessages(prevMessages => [...prevMessages, message]);
+    });
+
     // Clean up resources on component unmount
     return () => {
       console.log('Disconnecting from socket server...');
       if (socketRef.current) {
-        // socketRef.current.emit('User-disconnect', currentUser); // This is not needed as the server will handle it
         socketRef.current.disconnect();
       }
       if (localStream) {
@@ -227,7 +235,6 @@ const VideoKon = () => {
           if (localVideoRef.current) {
             localVideoRef.current.srcObject = localStream;
           }
-          setIsScreenSharing(false);
         };
   
         setIsScreenSharing(true);
@@ -235,11 +242,10 @@ const VideoKon = () => {
         console.error("Error sharing screen:", err);
       }
     } else {
-      // Stop screen share logic
-      const videoTrack = localStream.getVideoTracks()[0];
-      const sender = peerConnectionRef.current.getSenders().find(s => s.track.kind === 'video');
-      if (sender) {
-        sender.replaceTrack(videoTrack);
+      // Stop screen sharing
+      const tracks = localVideoRef.current?.srcObject?.getTracks();
+      if (tracks) {
+        tracks.forEach(track => track.stop());
       }
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = localStream;
@@ -264,34 +270,55 @@ const VideoKon = () => {
     window.location.href = '/';
   };
 
+  // Handle message input change
+  const handleMessageChange = (e) => {
+    setCurrentMessage(e.target.value);
+  };
+
+  // Handle message send
+  const handleSendMessage = () => {
+    if (currentMessage.trim()) {
+      const message = { text: currentMessage, sender: currentUser, timestamp: new Date() };
+      socketRef.current.emit('chat-message', message);
+      setMessages(prevMessages => [...prevMessages, message]);
+      setCurrentMessage('');
+    }
+  };
+
+  const openPanel = (panel) => {
+    setActivePanel(panel);
+  };
+
   return (
     <div className="flex flex-col items-center h-screen bg-gray-100">
       <div className="bg-blue-600 w-full py-4 text-center text-white">
         <h2 className="text-2xl font-semibold">VideoKon</h2>
       </div>
       <div className="flex-1 flex justify-center items-center bg-gray-800 w-full relative">
-  <video
-    ref={remoteVideoRef}
-    autoPlay
-    playsInline
-    className={`max-w-full max-h-full object-contain ${remoteStream ? '' : 'hidden'}`}
-  />
-  <video
-    ref={localVideoRef}
-    autoPlay
-    playsInline
-    muted
-    className={`absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white ${myVideo ? '' : 'hidden'}`}
-  />
-  <img
-    src="https://via.placeholder.com/150"
-    alt="User"
-    className={`absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white ${myVideo ? 'hidden' : ''}`}
-  />
-  {!remoteStream && (
-    <p className="absolute text-white text-lg">Waiting for other participants to join...</p>
-  )}
-</div>
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className={`max-w-full max-h-full object-contain ${remoteStream ? '' : 'hidden'}`}
+        />
+        <video
+          ref={localVideoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white ${myVideo ? '' : 'hidden'}`}
+        />
+        {!myVideo && (
+          <img
+            src="https://via.placeholder.com/150"
+            alt="User"
+            className="absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white"
+          />
+        )}
+        {!remoteStream && (
+          <p className="absolute text-white text-lg">Waiting for other participants to join...</p>
+        )}
+      </div>
       <div className="flex justify-around w-full max-w-md py-4 bg-white border-t border-gray-300">
         <Button variant="ghost" onClick={toggleMute}>
           {myAudio ? <FaMicrophone className="text-xl" /> : <FaMicrophoneSlash className="text-xl" />}
@@ -302,9 +329,75 @@ const VideoKon = () => {
         <Button variant="ghost" onClick={toggleScreenShare}>
           <FaDesktop className="text-xl" />
         </Button>
+        <Button variant="ghost">
+          <FaRecordVinyl className="text-xl" />
+        </Button>
+        <Button variant="ghost" onClick={() => openPanel('participants')}>
+          <FaUsers className="text-xl" />
+        </Button>
+        <Button variant="ghost" onClick={() => openPanel('chat')}>
+          <FaComment className="text-xl" />
+        </Button>
         <Button variant="destructive" onClick={endMeeting}>
           <FaPhone className="text-xl" />
         </Button>
+      </div>
+      <div className={`chat-panel ${activePanel === 'chat' ? 'open' : 'closed'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg px-4">Chat</h3>
+          <Button variant="ghost" onClick={() => setActivePanel(null)}>
+            <FaTimes className="text-xl" />
+          </Button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <ul className="space-y-2">
+            {messages.map((msg, index) => (
+              <li key={index} className="flex flex-col">
+                <div className="flex items-center mb-1">
+                  <img
+                    src={`https://api.hello-avatar.com/adorables/${msg.sender}`}
+                    alt={msg.sender}
+                    className="w-8 h-8 rounded-full mr-2"
+                  />
+                  <span className="font-semibold">{msg.sender}</span>
+                </div>
+                <span>{msg.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="flex mt-4 px-4">
+          <input
+            type="text"
+            value={currentMessage}
+            onChange={handleMessageChange}
+            placeholder="Type a message..."
+            className="flex-1 border border-gray-300 p-2 rounded-lg"
+          />
+          <Button variant="secondary" onClick={handleSendMessage} className="ml-2">
+            Send
+          </Button>
+        </div>
+      </div>
+      <div className={`participants-panel ${activePanel === 'participants' ? 'open' : 'closed'}`}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-lg px-4">Participants</h3>
+          <Button variant="ghost" onClick={() => setActivePanel(null)}>
+            <FaTimes className="text-xl" />
+          </Button>
+        </div>
+        <ul>
+          {participants.map(participant => (
+            <li key={participant.id} className="flex items-center mb-2">
+              <img
+                src={`https://api.hello-avatar.com/adorables/${participant.id}`}
+                alt={participant.name}
+                className="w-10 h-10 rounded-full mr-2"
+              />
+              <span className="font-medium">{participant.name}</span>   
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
