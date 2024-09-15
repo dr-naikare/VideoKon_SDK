@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaPhone } from 'react-icons/fa';
 import { Button } from '../components/ui/button';
 import io from 'socket.io-client';
+import { useParams } from 'react-router-dom'; 
 
 const VideoKon = () => {
   console.log("meeting page rendered");
@@ -14,7 +15,7 @@ const VideoKon = () => {
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
-  const roomId = 'abc'; // Replace with a unique room ID
+  const { roomId } = useParams(); // Extract roomId from URL
   let currentUser;
 
   // This is for first connecting to the server using socket.io

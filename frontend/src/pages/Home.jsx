@@ -38,7 +38,7 @@ const Home = () => {
   };
 
   const joinMeeting = () => {
-    window.location.href = '/meeting';
+    window.location.href = '/lobby';
   }
 
   return (
