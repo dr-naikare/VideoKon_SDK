@@ -2,12 +2,12 @@
 .participants-panel {
   position: fixed;
   top: 0;
-  height: 88.5%;
+  height: 83%;
   width: 300px;
   background: white;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
-  transform: translateX(100%);
+  transform: translateX(200%);
   right: 0; 
 }
 

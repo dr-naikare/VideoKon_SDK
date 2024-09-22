@@ -14,7 +14,7 @@ const VideoKon = () => {
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
-  const [activePanel, setActivePanel] = useState(null); // State to manage active panel
+  const [activePanel, setActivePanel] = useState(null); 
   const [participants, setParticipants] = useState([]);
   const [messages, setMessages] = useState([]); // Chat messages
   const [currentMessage, setCurrentMessage] = useState(''); // Current message input
@@ -285,16 +285,20 @@ const VideoKon = () => {
     }
   };
 
-  const openPanel = (panel) => {
-    setActivePanel(panel);
+  const togglePanel = (panel) => {
+    setActivePanel(activePanel === panel ? null : panel);
   };
 
   return (
-    <div className="flex flex-col items-center h-screen bg-gray-100">
+    <div className="flex flex-col items-center h-screen bg-gray-100 relative">
       <div className="bg-blue-600 w-full py-4 text-center text-white">
         <h2 className="text-2xl font-semibold">VideoKon</h2>
       </div>
-      <div className="flex-1 flex justify-center items-center bg-gray-800 w-full relative">
+      <div
+        className={`main-video-container flex-1 flex justify-center items-center bg-gray-800 w-full relative ${
+          activePanel ? 'expanded' : ''
+        }`}
+      >
         <video
           ref={remoteVideoRef}
           autoPlay
@@ -306,19 +310,20 @@ const VideoKon = () => {
           autoPlay
           playsInline
           muted
-          className={`absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white ${myVideo ? '' : 'hidden'}`}
+          className={`absolute bottom-4 left-4 w-36 h-36 rounded-lg border-2 border-white ${myVideo ? '' : 'hidden'}`}
         />
         {!myVideo && (
           <img
             src="https://via.placeholder.com/150"
             alt="User"
-            className="absolute bottom-4 right-4 w-36 h-36 rounded-lg border-2 border-white"
+            className="absolute bottom-4 left-4 w-36 h-36 rounded-lg border-2 border-white"
           />
         )}
         {!remoteStream && (
           <p className="absolute text-white text-lg">Waiting for other participants to join...</p>
         )}
       </div>
+
       <div className="flex justify-around w-full max-w-md py-4 bg-white border-t border-gray-300">
         <Button variant="ghost" onClick={toggleMute}>
           {myAudio ? <FaMicrophone className="text-xl" /> : <FaMicrophoneSlash className="text-xl" />}
@@ -332,20 +337,22 @@ const VideoKon = () => {
         <Button variant="ghost">
           <FaRecordVinyl className="text-xl" />
         </Button>
-        <Button variant="ghost" onClick={() => openPanel('participants')}>
+        <Button variant="ghost" onClick={() => togglePanel('participants')}>
           <FaUsers className="text-xl" />
         </Button>
-        <Button variant="ghost" onClick={() => openPanel('chat')}>
+        <Button variant="ghost" onClick={() => togglePanel('chat')}>
           <FaComment className="text-xl" />
         </Button>
         <Button variant="destructive" onClick={endMeeting}>
           <FaPhone className="text-xl" />
         </Button>
       </div>
-      <div className={`chat-panel ${activePanel === 'chat' ? 'open' : 'closed'}`}>
+
+      {/* Chat Panel */}
+      <div className={`chat-panel ${activePanel === 'chat' ? 'open' : ''} lg:rounded-lg lg:mt-5 lg:mx-2`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg px-4">Chat</h3>
-          <Button variant="ghost" onClick={() => setActivePanel(null)}>
+          <Button variant="ghost" onClick={() => togglePanel(null)}>
             <FaTimes className="text-xl" />
           </Button>
         </div>
@@ -379,10 +386,12 @@ const VideoKon = () => {
           </Button>
         </div>
       </div>
-      <div className={`participants-panel ${activePanel === 'participants' ? 'open' : 'closed'}`}>
+
+      {/* Participants Panel */}
+      <div className={`participants-panel ${activePanel === 'participants' ? 'open' : ''} lg:rounded-lg lg:mt-5 lg:mx-2`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-lg px-4">Participants</h3>
-          <Button variant="ghost" onClick={() => setActivePanel(null)}>
+          <Button variant="ghost" onClick={() => togglePanel(null)}>
             <FaTimes className="text-xl" />
           </Button>
         </div>
@@ -402,5 +411,4 @@ const VideoKon = () => {
     </div>
   );
 };
-
 export default VideoKon;
