@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from '../lib/axiosInstance';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"; // Assuming ShadCN's Sheet component is here
 
 const Home = () => {
@@ -40,20 +40,9 @@ const Home = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        Navigate("/login");
-        return;
-      }
-
       try {
-        const response = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await axiosInstance.get(
+          "/user"
         );
         console.log("User data:", response.data);
         setUser(response.data);

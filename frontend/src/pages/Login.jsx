@@ -21,10 +21,12 @@ const LoginPage = () => {
       });
       console.log('Response:', response.data);
       if (response.status === 200) {
-        const { redirectUrl, token } = response.data;
-        setCookie('token', token, { path: '/' });
-        // Redirect to the specified URL
-        navigate(redirectUrl, { state: { currentUser } });
+        const { redirectUrl, accesstoken, refreshtoken } = response.data;
+        console.log("accessToken", accesstoken);
+        console.log("refreshToken", refreshtoken);
+        setCookie('accesstoken', accesstoken, { path: '/' });
+        setCookie('refreshtoken', refreshtoken, { path: '/' });
+        navigate(redirectUrl);
       }
       toast.success('Login successful');
       // Handle successful login (e.g., store token, redirect)
