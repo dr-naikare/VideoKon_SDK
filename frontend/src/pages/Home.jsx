@@ -15,7 +15,6 @@ import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"; // Assuming ShadCN's Sheet component is here
-//import { c } from 'vite/dist/node/types.d-aGj9QkWt';
 
 const Home = () => {
   const location = useLocation();

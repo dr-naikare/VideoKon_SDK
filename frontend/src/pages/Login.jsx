@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
+import { setCookie } from '@/lib/cookie';
 import toast from 'react-hot-toast';
 
 const LoginPage = () => {
@@ -20,10 +21,8 @@ const LoginPage = () => {
       });
       console.log('Response:', response.data);
       if (response.status === 200) {
-        const { redirectUrl, token, currentUser } = response.data;
-        // Store the token and currentUser if needed
-        localStorage.setItem('token', token);
-        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        const { redirectUrl, token } = response.data;
+        setCookie('token', token, { path: '/' });
         // Redirect to the specified URL
         navigate(redirectUrl, { state: { currentUser } });
       }

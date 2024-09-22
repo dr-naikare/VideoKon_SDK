@@ -11,11 +11,10 @@ import LobbyPage from './pages/Lobby'
 const router = createBrowserRouter([
   {
     path: "/",
-    element: 
+    element:
     <PrivateRoute>
-      <Home/>
+     <Home/>
     </PrivateRoute>
-  
   },
   {
     path: "/login",
@@ -26,12 +25,12 @@ const router = createBrowserRouter([
     element: <SignupPage/>
   },
   {
-    path: "/lobby",
-    element: <LobbyPage/>
+    path: "/meeting/:roomId",
+    element: <MeetingPage/>
   },
   {
-    path: "/meeting",
-    element: <MeetingPage/>
+    path:"/lobby",
+    element:<LobbyPage/>
   }
 ])
 
