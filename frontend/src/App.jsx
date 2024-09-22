@@ -5,11 +5,15 @@ import LoginPage from './pages/Login'
 import SignupPage from './pages/Signup'
 import MeetingPage from './pages/Meeting'
 import LobbyPage from './pages/Lobby'
+import PrivateRoute from './components/PrivateRoutes'
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home/>
+    element:
+    <PrivateRoute>
+     <Home/>
+    </PrivateRoute>
   },
   {
     path: "/login",

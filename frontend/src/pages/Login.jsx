@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
+import { setCookie } from '@/lib/cookie';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -19,6 +20,7 @@ const LoginPage = () => {
       console.log('Response:', response.data);
       if (response.status === 200) {
         const { redirectUrl, token } = response.data;
+        setCookie('token', token, { path: '/' });
         // Redirect to the specified URL
         navigate(redirectUrl);
       }

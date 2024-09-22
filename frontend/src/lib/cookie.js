@@ -1,4 +1,4 @@
-// src/utils/cookies.js
+
 
 import Cookies from 'js-cookie';
 
