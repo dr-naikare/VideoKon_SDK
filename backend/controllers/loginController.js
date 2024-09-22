@@ -11,6 +11,7 @@ const loginUser = async (req, res) => {
 
     try {
         const user = await User.findOne({ email });
+        console.log(user.name);
         
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
@@ -23,6 +24,7 @@ const loginUser = async (req, res) => {
         }
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
         await res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
         res.status(200).json({ message: 'Login successful', redirectUrl: '/', token });
     } catch (error) {

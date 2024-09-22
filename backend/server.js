@@ -5,6 +5,7 @@ const cors = require('cors');
 const http = require('http');
 const { Server} = require('socket.io');
 const authRoutes = require('./routes/auth.js');
+const authMiddleware = require('./middleware/authMiddleware');
 const statusmonitor = require('express-status-monitor');
 
 dotenv.config();

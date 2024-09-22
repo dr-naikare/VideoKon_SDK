@@ -2,10 +2,12 @@ import { useState } from 'react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
 import { setCookie } from '@/lib/cookie';
+import toast from 'react-hot-toast';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -13,7 +15,7 @@ const LoginPage = () => {
     // Handle login logic here
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`http://localhost:5000/api/auth/login`, {
         email,
         password
       });
@@ -22,10 +24,15 @@ const LoginPage = () => {
         const { redirectUrl, token } = response.data;
         setCookie('token', token, { path: '/' });
         // Redirect to the specified URL
-        navigate(redirectUrl);
+        navigate(redirectUrl, { state: { currentUser } });
       }
+      toast.success('Login successful');
       // Handle successful login (e.g., store token, redirect)
+      setLoading(true);
+      setEmail('');
+      setPassword('');
     } catch (error) {
+      toast.error('Login failed');
       console.error('Error logging in:', error);
       // Handle login error (e.g., show error message)
     }
@@ -35,11 +42,11 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <div className="flex flex-col items-center justify-center w-1/3 bg-blue-600 p-8">
+    <div className="flex flex-col md:flex-row min-h-screen">
+      <div className="flex flex-col items-center w-full justify-center md:w-1/3 bg-blue-600 p-8">
         <h1 className="text-4xl font-bold text-white mb-8">VideoKon</h1>
       </div>
-      <div className="flex flex-col items-center justify-center w-2/3 bg-gray-100">
+      <div className="flex flex-col items-center w-full pt-4 justify-center md:w-2/3 bg-gray-100 h-[78vh] md:h-auto">
         <div className="flex flex-col items-center justify-center w-full max-w-md p-8 space-y-8 bg-white shadow-md rounded-xl">
           <h2 className="text-2xl font-bold text-center text-blue-600">Log in</h2>
           <form className="mt-8 space-y-6 w-full" onSubmit={handleSubmit}>
@@ -80,6 +87,7 @@ const LoginPage = () => {
             <div>
               <button
                 type="submit"
+                disabled={loading}
                 className="group relative flex w-full justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Log in
