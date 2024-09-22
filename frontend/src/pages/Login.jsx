@@ -19,8 +19,6 @@ const LoginPage = () => {
       console.log('Response:', response.data);
       if (response.status === 200) {
         const { redirectUrl, token } = response.data;
-        // Store the token if needed
-        localStorage.setItem('token', token);
         // Redirect to the specified URL
         navigate(redirectUrl);
       }

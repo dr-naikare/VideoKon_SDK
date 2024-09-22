@@ -27,6 +27,7 @@ const loginUser = async (req, res) => {
 
         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
         console.log(token);
+        res.cookie('token', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
         res.status(200).json({ message: 'Login successful', redirectUrl: '/', token });
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
