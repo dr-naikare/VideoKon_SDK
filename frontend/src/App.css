@@ -1,0 +1,42 @@
+.chat-panel,
+.participants-panel {
+  position: fixed;
+  top: 0;
+  height: 83%;
+  width: 300px;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  transform: translateX(200%);
+  right: 0; 
+}
+
+.chat-panel.open,
+.participants-panel.open {
+  transform: translateX(0);
+}
+
+.chat-panel.closed,
+.participants-panel.closed {
+  transform: translateX(100%);
+}
+
+@media (max-width: 768px) {
+  .chat-panel,
+  .participants-panel {
+    width: 100%;
+    right: 0;
+  }
+  .chat-panel,
+.participants-panel {
+  position: fixed;
+  top: 0;
+  height: 92%;
+  width: 300px;
+  background: white;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+  transform: translateX(100%);
+  right: 0; 
+}
+}

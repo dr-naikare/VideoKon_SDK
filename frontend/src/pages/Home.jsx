@@ -231,7 +231,7 @@ const Home = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg grid grid-cols-1 gap-4">
             <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
               <span className="material-icons"><GroupIcon/></span>
-              <span className="ml-2">Start a meeting</span>
+              <a href="/meeting" className="ml-2">Start a meeting</a>
             </button>
             <Button
               onClick={joinMeeting}
