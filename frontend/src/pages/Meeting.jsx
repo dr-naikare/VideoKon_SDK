@@ -1,13 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaPhone, FaUsers, FaComment, FaTimes, FaRecordVinyl } from 'react-icons/fa';
+import { FaMicrophone, FaMicrophoneSlash, FaVideo, FaVideoSlash, FaDesktop, FaPhone, FaUsers, FaComment, FaTimes } from 'react-icons/fa';
 import { Button } from '../components/ui/button';
 import io from 'socket.io-client';
 import { useParams } from 'react-router-dom'; 
 
 const VideoKon = () => {
-  console.log("meeting page rendered");
-  const [myAudio, setMyAudio] = useState(false);
-  const [myVideo, setMyVideo] = useState(false);
+  const [myAudio, setMyAudio] = useState(true);
+  const [myVideo, setMyVideo] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [localStream, setLocalStream] = useState(null);
   const [remoteStream, setRemoteStream] = useState(null);
@@ -15,235 +14,144 @@ const VideoKon = () => {
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const socketRef = useRef(null);
-  const { roomId } = useParams(); // Extract roomId from URL
-  const [activePanel, setActivePanel] = useState(null); 
+  const { roomId } = useParams();
+  const [activePanel, setActivePanel] = useState(null);
   const [participants, setParticipants] = useState([]);
-  const [messages, setMessages] = useState([]); // Chat messages
-  const [currentMessage, setCurrentMessage] = useState(''); // Current message input
+  const [messages, setMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [currentPage, setCurrentPage] = useState(0);
+  const participantsPerPage = 6;
+
   let currentUser;
 
-  // This is for first connecting to the server using socket.io
   useEffect(() => {
-    // Create a new RTCPeerConnection instance
     peerConnectionRef.current = new RTCPeerConnection({
-      iceServers: [
-        {
-          urls: 'stun:stun.l.google.com:19302' // Google's public STUN server
-        }
-      ]
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
     });
 
-    // Get user media (audio and video)
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
       .then(stream => {
         setLocalStream(stream);
-        console.log('Local stream obtained:', stream.getTracks().map(track => track.kind).join(', '));
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
-
-        stream.getAudioTracks().forEach(track => {
-          console.log('Local audio track obtained:', track);
-        });
-
         stream.getTracks().forEach(track => peerConnectionRef.current.addTrack(track, stream));
-
-        // Create offer immediately
         createOffer();
       })
-      .catch(err => {
-        console.error("Error getting user media:", err);
-      });
+      .catch(err => console.error("Error getting user media:", err));
 
-    // Connect to the socket server
     socketRef.current = io('http://localhost:5000');
 
-    // Handle connection event
     socketRef.current.on('connect', () => {
       currentUser = socketRef.current.id;
-      console.log(`${currentUser} is connected to the server`);
       socketRef.current.emit('join-room', roomId, currentUser);
     });
 
-    // Handle user connected event
-    socketRef.current.on('user-connected', userId => {
-      console.log(`${userId} connected to the room`);
-      // No need to create an offer here, it's already created for the first user
+    socketRef.current.on('existing-participants', (participants) => {
+      setParticipants(participants);
     });
 
-    // Handle ICE candidate event
+    socketRef.current.on('user-connected', userId => {
+      setParticipants(prev => [...prev, { id: userId, video: true, audio: true }]);
+    });
+
+    socketRef.current.on('user-disconnected', userId => {
+      setParticipants(prev => prev.filter(participant => participant.id !== userId));
+    });
+
+    socketRef.current.on('video-status', ({ userId, status }) => {
+      setParticipants(prev => prev.map(participant => (
+        participant.id === userId ? { ...participant, video: status } : participant
+      )));
+    });
+
+    socketRef.current.on('audio-status', ({ userId, status }) => {
+      setParticipants(prev => prev.map(participant => (
+        participant.id === userId ? { ...participant, audio: status } : participant
+      )));
+    });
+
     peerConnectionRef.current.onicecandidate = event => {
       if (event.candidate) {
         socketRef.current.emit('ice-candidate', { candidate: event.candidate, roomId });
-        console.log('ICE candidate sent to server by client', event.candidate);
       }
     };
 
-    // Handle remote stream track event (This will be triggered during offer creation)
     peerConnectionRef.current.ontrack = event => {
-      console.log(`Remote stream received by ${currentUser}`);
       setRemoteStream(event.streams[0]);
       if (remoteVideoRef.current) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
-
-      //to check if the audio track is received
-      event.streams[0].getAudioTracks().forEach(track => {
-        console.log('Remote audio track received:', track);
-      });
-
-      // Handle track removal
-      event.streams[0].getTracks().forEach(track => {
-        track.onremovetrack = () => {
-          console.log(`Remote stream removed by ${currentUser}`);
-          setRemoteStream(null); // Update the state when the track is removed
-          remoteVideoRef.current.srcObject = null; 
-        };
-      });
     };
 
-    socketRef.current.on('user-disconnected', userId => {
-      console.log(`${userId} disconnected from the room`);
-      if (userId !== currentUser) {
-        console.log(`Remote stream removed by ${currentUser}`);
-        setRemoteStream(null); // Update the state when the track is removed
-        remoteVideoRef.current.srcObject = null; 
-      }
-    });
-
-    // Handle offer event
     socketRef.current.on('offer', async data => {
-      console.log(`Offer received from ${data.offerby} by ${currentUser}`);
-      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.offer)).then(
-        async () => {
-          await peerConnectionRef.current.createAnswer().then(
-            async answer => {
-              await peerConnectionRef.current.setLocalDescription(answer).then(
-                () => {
-                  console.log('Local description set successfully');
-                  socketRef.current.emit('answer', { answer, roomId, answerby: currentUser });
-                  console.log(`Answer sent to the server by ${currentUser}`);
-                }
-              );
-            }
-          );
-        }
-      );
+      await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.offer));
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
+      socketRef.current.emit('answer', { answer, roomId, answerby: currentUser });
     });
 
-    // Handle answer event
     socketRef.current.on('answer', async data => {
-      console.log(`Answer received from ${data.answerby} by ${currentUser}`);
       await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data.answer));
-      console.log(`Remote description set successfully and the signaling state is ${peerConnectionRef.current.signalingState}`);
     });
 
-    // Handle ICE candidate event (from server)
     socketRef.current.on('ice-candidate', async data => {
-      try {
-        console.log('Received ICE candidate: by client', data);
-        await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
-      } catch (e) {
-        console.error('Error adding received ice candidate', e);
-      }
+      await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(data.candidate));
     });
 
-    // Handle incoming chat messages
     socketRef.current.on('chat-message', message => {
       setMessages(prevMessages => [...prevMessages, message]);
     });
 
-    // Clean up resources on component unmount
     return () => {
-      console.log('Disconnecting from socket server...');
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-      }
+      localStream?.getTracks().forEach(track => track.stop());
+      peerConnectionRef.current?.close();
     };
   }, []);
 
-  // Create an offer to start the connection (Call this immediately after getting user media)
   const createOffer = async () => {
-    await peerConnectionRef.current.createOffer().then(
-      async offer => {
-        await peerConnectionRef.current.setLocalDescription(offer).then(
-          () => {
-            console.log('Local description set successfully');
-            socketRef.current.emit('offer', { offer, roomId, offerby: currentUser });
-            console.log(`Offer sent to the server by ${currentUser}`);
-          }
-        );
-      }
-    );
+    const offer = await peerConnectionRef.current.createOffer();
+    await peerConnectionRef.current.setLocalDescription(offer);
+    socketRef.current.emit('offer', { offer, roomId, offerby: currentUser });
   };
 
-  // useEffect to log audio and video states
-  useEffect(() => {
-    console.log("audio is", myAudio);
-    console.log("video is", myVideo);
-  }, [myAudio, myVideo]);
-
-  // Toggle mute functionality
   const toggleMute = () => {
     setMyAudio(!myAudio);
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      audioTrack.enabled = !audioTrack.enabled;
-      console.log('Audio track enabled:', audioTrack.enabled);
-    }
+    const audioTrack = localStream.getAudioTracks()[0];
+    audioTrack.enabled = !audioTrack.enabled;
   };
 
-  // Toggle video functionality
   const toggleVideo = () => {
     setMyVideo(!myVideo);
-    if (localStream) {
-      const videoTrack = localStream.getVideoTracks()[0];
-      videoTrack.enabled = !videoTrack.enabled;
-      console.log('Video track enabled:', videoTrack.enabled);
-    }
+    const videoTrack = localStream.getVideoTracks()[0];
+    videoTrack.enabled = !videoTrack.enabled;
   };
 
-  // Toggle screen share functionality (not implemented yet)
   const toggleScreenShare = async () => {
     if (!isScreenSharing) {
-      try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        const screenTrack = screenStream.getVideoTracks()[0];
-  
-        // Replace the video track in the peer connection with the screen share track
-        const sender = peerConnectionRef.current.getSenders().find(s => s.track.kind === 'video');
-        if (sender) {
-          sender.replaceTrack(screenTrack);
-        }
-  
-        // Update the local video element to show the screen share
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = screenStream;
-        }
-  
-        screenTrack.onended = () => {
-          // Revert back to the original video track when screen sharing stops
-          const videoTrack = localStream.getVideoTracks()[0];
-          if (sender) {
-            sender.replaceTrack(videoTrack);
-          }
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = localStream;
-          }
-        };
-  
-        setIsScreenSharing(true);
-      } catch (err) {
-        console.error("Error sharing screen:", err);
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      const sender = peerConnectionRef.current.getSenders().find(s => s.track.kind === 'video');
+      if (sender) {
+        sender.replaceTrack(screenTrack);
       }
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = screenStream;
+      }
+      screenTrack.onended = () => {
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (sender) {
+          sender.replaceTrack(videoTrack);
+        }
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStream;
+        }
+      };
+      setIsScreenSharing(true);
     } else {
-      // Stop screen sharing
       const tracks = localVideoRef.current?.srcObject?.getTracks();
       if (tracks) {
         tracks.forEach(track => track.stop());
@@ -255,28 +163,18 @@ const VideoKon = () => {
     }
   };
 
-  // End meeting functionality
   const endMeeting = () => {
-    // End meeting logic, then redirect
-    if (socketRef.current) {
-      socketRef.current.emit('User-disconnect', currentUser);
-      socketRef.current.disconnect();
-    }
-    if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
-    }
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-    }
+    socketRef.current.emit('User-disconnect', currentUser);
+    socketRef.current.disconnect();
+    localStream.getTracks().forEach(track => track.stop());
+    peerConnectionRef.current.close();
     window.location.href = '/';
   };
 
-  // Handle message input change
   const handleMessageChange = (e) => {
     setCurrentMessage(e.target.value);
   };
 
-  // Handle message send
   const handleSendMessage = () => {
     if (currentMessage.trim()) {
       const message = { text: currentMessage, sender: currentUser, timestamp: new Date() };
@@ -286,20 +184,16 @@ const VideoKon = () => {
     }
   };
 
-  const togglePanel = (panel) => {
-    setActivePanel(activePanel === panel ? null : panel);
-  };
+  const totalPages = Math.ceil(participants.length / participantsPerPage);
+  const startIndex = currentPage * participantsPerPage;
+  const currentParticipants = participants.slice(startIndex, startIndex + participantsPerPage);
 
   return (
     <div className="flex flex-col items-center h-screen bg-gray-100 relative">
       <div className="bg-blue-600 w-full py-4 text-center text-white">
         <h2 className="text-2xl font-semibold">VideoKon</h2>
       </div>
-      <div
-        className={`main-video-container flex-1 flex justify-center items-center bg-gray-800 w-full relative ${
-          activePanel ? 'expanded' : ''
-        }`}
-      >
+      <div className="main-video-container flex-1 flex justify-center items-center bg-gray-800 w-full relative">
         <video
           ref={remoteVideoRef}
           autoPlay
@@ -324,7 +218,6 @@ const VideoKon = () => {
           <p className="absolute text-white text-lg">Waiting for other participants to join...</p>
         )}
       </div>
-
       <div className="flex justify-around w-full max-w-md py-4 bg-white border-t border-gray-300">
         <Button variant="ghost" onClick={toggleMute}>
           {myAudio ? <FaMicrophone className="text-xl" /> : <FaMicrophoneSlash className="text-xl" />}
@@ -335,81 +228,73 @@ const VideoKon = () => {
         <Button variant="ghost" onClick={toggleScreenShare}>
           <FaDesktop className="text-xl" />
         </Button>
-        <Button variant="ghost">
-          <FaRecordVinyl className="text-xl" />
-        </Button>
-        <Button variant="ghost" onClick={() => togglePanel('participants')}>
+        <Button variant="ghost" onClick={() => setActivePanel('participants')}>
           <FaUsers className="text-xl" />
         </Button>
-        <Button variant="ghost" onClick={() => togglePanel('chat')}>
+        <Button variant="ghost" onClick={() => setActivePanel('chat')}>
           <FaComment className="text-xl" />
         </Button>
-        <Button variant="destructive" onClick={endMeeting}>
-          <FaPhone className="text-xl" />
+        <Button variant="ghost" onClick={endMeeting}>
+          <FaPhone className="text-xl text-red-600" />
         </Button>
       </div>
-
-      {/* Chat Panel */}
-      <div className={`chat-panel ${activePanel === 'chat' ? 'open' : ''} lg:rounded-lg lg:mt-5 lg:mx-2`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-lg px-4">Chat</h3>
-          <Button variant="ghost" onClick={() => togglePanel(null)}>
-            <FaTimes className="text-xl" />
-          </Button>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <ul className="space-y-2">
-            {messages.map((msg, index) => (
-              <li key={index} className="flex flex-col">
-                <div className="flex items-center mb-1">
-                  <img
-                    src={`https://api.hello-avatar.com/adorables/${msg.sender}`}
-                    alt={msg.sender}
-                    className="w-8 h-8 rounded-full mr-2"
-                  />
-                  <span className="font-semibold">{msg.sender}</span>
-                </div>
-                <span>{msg.text}</span>
-              </li>
+      {activePanel === 'participants' && (
+        <div className="participants-panel bg-white w-full max-w-md rounded-lg shadow-lg absolute top-20 right-4 z-10">
+          <div className="flex justify-between items-center p-4 border-b">
+            <h3 className="text-lg font-semibold">Participants</h3>
+            <Button onClick={() => setActivePanel(null)}><FaTimes /></Button>
+          </div>
+          <div className="p-4">
+            {currentParticipants.map(participant => (
+              <div key={participant.id} className="flex justify-between items-center py-2">
+                <span>{participant.id}</span>
+                <span>{participant.video ? '🎥' : '📵'}</span>
+              </div>
             ))}
-          </ul>
+            <div className="flex justify-between">
+              <Button
+                disabled={currentPage === 0}
+                onClick={() => setCurrentPage(currentPage - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                disabled={currentPage === totalPages - 1}
+                onClick={() => setCurrentPage(currentPage + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex mt-4 px-4">
-          <input
-            type="text"
-            value={currentMessage}
-            onChange={handleMessageChange}
-            placeholder="Type a message..."
-            className="flex-1 border border-gray-300 p-2 rounded-lg"
-          />
-          <Button variant="secondary" onClick={handleSendMessage} className="ml-2">
-            Send
-          </Button>
+      )}
+      {activePanel === 'chat' && (
+        <div className="chat-panel bg-white w-full max-w-md rounded-lg shadow-lg absolute top-20 left-4 z-10">
+          <div className="flex justify-between items-center p-4 border-b">
+            <h3 className="text-lg font-semibold">Chat</h3>
+            <Button onClick={() => setActivePanel(null)}><FaTimes /></Button>
+          </div>
+          <div className="p-4 max-h-60 overflow-y-auto">
+            {messages.map((msg, index) => (
+              <div key={index} className="py-1">
+                <strong>{msg.sender}: </strong>{msg.text}
+              </div>
+            ))}
+          </div>
+          <div className="p-4 flex">
+            <input
+              type="text"
+              value={currentMessage}
+              onChange={handleMessageChange}
+              className="flex-1 border border-gray-300 p-2 rounded"
+              placeholder="Type a message..."
+            />
+            <Button onClick={handleSendMessage} className="ml-2">Send</Button>
+          </div>
         </div>
-      </div>
-
-      {/* Participants Panel */}
-      <div className={`participants-panel ${activePanel === 'participants' ? 'open' : ''} lg:rounded-lg lg:mt-5 lg:mx-2`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-lg px-4">Participants</h3>
-          <Button variant="ghost" onClick={() => togglePanel(null)}>
-            <FaTimes className="text-xl" />
-          </Button>
-        </div>
-        <ul>
-          {participants.map(participant => (
-            <li key={participant.id} className="flex items-center mb-2">
-              <img
-                src={`https://api.hello-avatar.com/adorables/${participant.id}`}
-                alt={participant.name}
-                className="w-10 h-10 rounded-full mr-2"
-              />
-              <span className="font-medium">{participant.name}</span>   
-            </li>
-          ))}
-        </ul>
-      </div>
+      )}
     </div>
   );
 };
+
 export default VideoKon;
