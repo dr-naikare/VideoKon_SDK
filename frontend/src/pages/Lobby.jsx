@@ -1,13 +1,18 @@
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button"; // Adjust based on your structure
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { v4 as uuidv4 } from "uuid";
 import { CameraIcon, CameraOffIcon, MicIcon, MicOffIcon } from "lucide-react";
+import toast from "react-hot-toast";
+import io from 'socket.io-client';
+
+const socket = io("http://localhost:5000");
 
 const LobbyPage = () => {
   const [meetingCode, setMeetingCode] = useState("");
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
-  const [micLevel, setMicLevel] = useState(0); // State to store mic level
+  const [micLevel, setMicLevel] = useState(0);
   const videoRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -39,6 +44,7 @@ const LobbyPage = () => {
       }
     } catch (error) {
       console.error("Error accessing webcam:", error);
+      toast.error("Please allow camera access.");
     }
   };
 
@@ -63,22 +69,19 @@ const LobbyPage = () => {
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
-      // Start visualizing the mic level
       const updateMicLevel = () => {
         analyser.getByteTimeDomainData(dataArray);
-        const normalizedMicLevel = Math.max(...dataArray) / 128.0 - 1.0; // Normalize between 0 and 1
-        setMicLevel(Math.abs(normalizedMicLevel)); // Set mic level state
-
-        requestAnimationFrame(updateMicLevel); // Continue to get audio levels
+        const normalizedMicLevel = Math.max(...dataArray) / 128.0 - 1.0;
+        setMicLevel(Math.abs(normalizedMicLevel));
+        requestAnimationFrame(updateMicLevel);
       };
 
       updateMicLevel();
-
-      // Store the audio context and analyser to stop them later
       audioContextRef.current = audioContext;
       analyserRef.current = analyser;
     } catch (error) {
       console.error("Error accessing microphone:", error);
+      toast.error("Please allow microphone access.");
     }
   };
 
@@ -90,28 +93,57 @@ const LobbyPage = () => {
     }
   };
 
-  const handleNewMeeting = () => {
+  const handleNewMeeting = async () => {
+    const roomId = uuidv4();
+    // Make a request to your backend to create a room
+    await fetch('/api/rooms', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ roomId }),
+    });
+
     localStorage.setItem("cameraStatus", isCameraOn);
     localStorage.setItem("micStatus", isMicOn);
-    window.location.href = `/meeting`;
+    window.location.href = `/meeting/${roomId}`;
   };
 
-  const handleJoinMeeting = () => {
+  const handleJoinMeeting = async () => {
     if (meetingCode) {
-      localStorage.setItem("cameraStatus", isCameraOn);
-      localStorage.setItem("micStatus", isMicOn);
-      window.location.href = `/meeting/${meetingCode}`;
+      // Check if the room exists
+      const response = await fetch(`/api/rooms/${meetingCode}`);
+      if (response.ok) {
+        localStorage.setItem("cameraStatus", isCameraOn);
+        localStorage.setItem("micStatus", isMicOn);
+        // Join the room via Socket.IO
+        socket.emit('joinRoom', meetingCode);
+        window.location.href = `/meeting/${meetingCode}`;
+      } else {
+        toast.error("Room not found!");
+      }
+    } else {
+      toast.error("Please enter a meeting code.");
     }
   };
 
-  // Helper function to determine the bar color based on mic level
+  useEffect(() => {
+    socket.on('userJoined', (userId) => {
+      toast.success(`User ${userId} joined the room!`);
+    });
+
+    return () => {
+      socket.off('userJoined');
+    };
+  }, []);
+
   const getMicLevelColor = () => {
     if (micLevel < 0.3) {
-      return "bg-green-600"; // Low volume
+      return "bg-green-600";
     } else if (micLevel < 0.6) {
-      return "bg-yellow-600"; // Medium volume
+      return "bg-yellow-600";
     } else {
-      return "bg-red-600"; // High volume
+      return "bg-red-600";
     }
   };
 
@@ -122,8 +154,7 @@ const LobbyPage = () => {
           <img src="/logo.jpg" alt="logo" className="w-10 h-10 mr-2 rounded-md" />
         </a>
       </div>
-      <div className="lg:h-[90vh] h-auto flex flex-col-reverse lg:flex-row items-center justify-betwee p-8">
-        {/* Left Section: Video Call and Inputs */}
+      <div className="lg:h-[90vh] h-auto flex flex-col-reverse lg:flex-row items-center justify-between p-8">
         <div className="lg:w-1/2 w-full mt-8 mx-5 lg:mt-0 flex justify-center items-center">
           <div className="relative w-full h-96 bg-gray-200 rounded-lg">
             <video
@@ -131,8 +162,6 @@ const LobbyPage = () => {
               className="w-full h-full object-cover rounded-lg"
               muted
             ></video>
-
-            {/* Mic Level Display */}
             <div className="w-full mt-4 text-center pb-4">
               <p className="text-lg mb-2">Mic Check:</p>
               <div className="w-full h-4 bg-gray-300 rounded-full overflow-hidden">
@@ -142,37 +171,27 @@ const LobbyPage = () => {
                 ></div>
               </div>
             </div>
-
-            {/* Camera Toggle */}
             <Button
               variant="outline"
-              className={`absolute bottom-4 left-4 ${isCameraOn ? "bg-green-600" : "bg-red-600"
-                } text-white font-bold px-4 py-2`}
+              className={`absolute bottom-4 left-4 ${isCameraOn ? "bg-green-600" : "bg-red-600"} text-white font-bold px-4 py-2`}
               onClick={() => setIsCameraOn(!isCameraOn)}
             >
               {isCameraOn ? <CameraIcon /> : <CameraOffIcon />}
             </Button>
-
-            {/* Microphone Toggle */}
             <Button
               variant="outline"
-              className={`absolute bottom-4 right-4 ${isMicOn ? "bg-green-600" : "bg-red-600"
-                } text-white font-bold px-4 py-2`}
+              className={`absolute bottom-4 right-4 ${isMicOn ? "bg-green-600" : "bg-red-600"} text-white font-bold px-4 py-2`}
               onClick={() => setIsMicOn(!isMicOn)}
             >
               {isMicOn ? <MicIcon /> : <MicOffIcon />}
             </Button>
           </div>
-
-          {/* Microphone Check (Below Video) */}
         </div>
 
-        {/* Right Section: Video and Audio Preview */}
         <div className="lg:w-1/2 w-full flex flex-col items-center lg:items-start">
           <h1 className="text-3xl font-semibold mb-4">Video calls and meetings for everyone</h1>
           <p className="mb-6 text-gray-600">Connect, collaborate, and celebrate from anywhere with Our Platform.</p>
 
-          {/* New Meeting and Join Form */}
           <div className="flex flex-col md:flex-row mb-6 md:space-x-2 justify-center items-center">
             <Button
               variant="outline"
@@ -189,7 +208,6 @@ const LobbyPage = () => {
                 value={meetingCode}
                 onChange={(e) => setMeetingCode(e.target.value)}
               />
-
               <Button
                 className="bg-gray-600 hover:bg-gray-700 text-white font-bold px-4 py-2 mb-2"
                 onClick={handleJoinMeeting}
@@ -199,7 +217,6 @@ const LobbyPage = () => {
             </div>
           </div>
 
-          {/* Learn more link */}
           <p className="text-blue-600 hover:underline cursor-pointer">Learn more about VideoKon</p>
         </div>
       </div>

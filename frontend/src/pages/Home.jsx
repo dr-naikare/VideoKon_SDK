@@ -3,7 +3,6 @@ import {
   Calendar,
   CalendarCheck,
   Contact,
-  Edit,
   GroupIcon,
   HomeIcon,
   LogOutIcon,
@@ -12,8 +11,9 @@ import {
   SwitchCameraIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import {  useLocation } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+import axiosInstance from '../lib/axiosInstance';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"; // Assuming ShadCN's Sheet component is here
 
 const Home = () => {
@@ -40,20 +40,9 @@ const Home = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        Navigate("/login");
-        return;
-      }
-
       try {
-        const response = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await axiosInstance.get(
+          "/user"
         );
         console.log("User data:", response.data);
         setUser(response.data);
@@ -94,6 +83,11 @@ const Home = () => {
 
   const joinMeeting = () => {
     window.location.href = "/lobby";
+  };
+
+  const handleStartMeeting = () => {
+    const roomId = uuidv4(); // Generate a unique room ID
+    window.location.href = `/meeting/${roomId}`; // Redirect to the meeting room
   };
 
   return (
@@ -230,7 +224,7 @@ const Home = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg grid grid-cols-1 gap-4">
             <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
               <span className="material-icons"><GroupIcon/></span>
-              <a href="/meeting" className="ml-2">Start a meeting</a>
+              <a onClick={handleStartMeeting} className="ml-2">Start a meeting</a>
             </button>
             <Button
               onClick={joinMeeting}
