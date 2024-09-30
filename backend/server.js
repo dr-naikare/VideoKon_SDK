@@ -1,23 +1,21 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const cors = require('cors');
-const http = require('http');
-const { Server } = require('socket.io');
-const authRoutes = require('./routes/auth.js');
-const roomRoutes = require('./routes/room.js');
-const statusmonitor = require('express-status-monitor');
+const express = require("express");
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+const authRoutes = require("./routes/auth.js");
+const statusmonitor = require("express-status-monitor");
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: {
-        origin: 'http://localhost:5173',
-        methods: ['GET', 'POST'],
-        credentials: true, // Allow credentials (cookies) to be sent
-    },
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
 });
 
 // Middleware
@@ -25,66 +23,93 @@ app.use(cors());
 app.use(express.json());
 app.use(statusmonitor());
 
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => console.log('MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log("MongoDB connection error:", err));
+
+// Store participants in each room
+const participants = {};
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/room', roomRoutes);
+app.use("/api/auth", authRoutes);
 
-// Socket.IO connection
-const participantsMap = {}; // Store participants by roomId
+// WebSocket connection
+io.on("connection", (socket) => {
+  console.log(`Connection established: ${socket.id}`);
 
-io.on('connection', (socket) => {
-    console.log(`Connection request received from client ${socket.id}`);
+  // Handle joining a room
+  socket.on("join-room", (roomId, userId) => {
+    console.log(`User ${userId} joining room ${roomId}`);
+    socket.join(roomId);
 
-    socket.on('join-room', (roomId, userId) => {
-        socket.join(roomId);
-        console.log(`User ${userId} joined room ${roomId}`);
+    // Initialize participants for the room if not exists
+    if (!participants[roomId]) {
+      participants[roomId] = [];
+    }
 
-        // Add user to the participants list
-        if (!participantsMap[roomId]) {
-            participantsMap[roomId] = [];
-        }
-        participantsMap[roomId].push(userId);
+    // Add user to the participants list
+    participants[roomId].push({ id: userId });
+    console.log(`User ${userId} joined room ${roomId} successfully`);
 
-        // Emit existing participants to the new user
-        socket.emit('existing-participants', participantsMap[roomId]);
+    // Emit the updated participants list to everyone in the room
+    io.to(roomId).emit("participants-updated", participants[roomId]);
 
-        // Notify other users in the room
-        socket.to(roomId).emit('user-connected', userId);
+    // Notify others that a new user has connected
+    socket.to(roomId).emit("user-connected", userId);
 
-        socket.on('User-disconnect', () => {
-            console.log(`User ${userId} disconnected from room ${roomId}`);
-            socket.leave(roomId);
-            participantsMap[roomId] = participantsMap[roomId].filter(participant => participant !== userId);
-            socket.to(roomId).emit('user-disconnected', userId);
-        });
+    // Add listener for disconnection event
+    socket.on("User-disconnect", (reason) => {
+      console.log(`User ${userId} disconnected from room ${roomId} - Reason: ${reason}`);
+      socket.leave(roomId);
+
+      // Remove user from the participants list
+      participants[roomId] = participants[roomId].filter((user) => user.id !== userId);
+
+      // Emit the updated participants list
+      io.to(roomId).emit("participants-updated", participants[roomId]);
+
+      // Notify others in the room that the user has disconnected
+      socket.to(roomId).emit("user-disconnected", userId);
+
+      // Clean up if the room is empty
+      if (participants[roomId].length === 0) {
+        delete participants[roomId];
+        console.log(`Room ${roomId} is empty. Cleaning up.`);
+      }
     });
+  });
 
-    socket.on('offer', (data) => {
-        console.log(`Offer by client ${data.offerby} received by server`);
-        socket.to(data.roomId).emit('offer', data);
+  // Handle offer from a user
+  socket.on("offer", (data) => {
+    console.log(`Offer from ${data.userId} to ${data.targetUserId} received.`);
+    socket.to(data.targetUserId).emit("offer", {
+      offer: data.offer,
+      roomId: data.roomId,
+      userId: data.userId,
     });
+  });
 
-    socket.on('answer', (data) => {
-        console.log(`Answer by client ${data.answerby} received by server`);
-        socket.to(data.roomId).emit('answer', data);
+  // Handle answer from a user
+  socket.on("answer", (data) => {
+    console.log(`Answer from ${data.userId} to ${data.targetUserId} received.`);
+    socket.to(data.targetUserId).emit("answer", {
+      answer: data.answer,
+      roomId: data.roomId,
+      userId: data.userId,
     });
+  });
 
-    socket.on('ice-candidate', (data) => {
-        console.log(`ICE candidate by client ${data.candidateby} received by server`);
-        socket.to(data.roomId).emit('ice-candidate', data);
+  // Handle ICE candidates
+  socket.on("ice-candidate", (data) => {
+    console.log(`ICE candidate from ${data.userId} to ${data.targetUserId} received.`);
+    socket.to(data.targetUserId).emit("ice-candidate", {
+      candidate: data.candidate,
+      roomId: data.roomId,
+      userId: data.userId,
     });
-
-    socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
-    });
+  });
 });
 
 // Start the server
