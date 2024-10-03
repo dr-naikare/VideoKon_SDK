@@ -7,6 +7,7 @@ import MeetingPage from './pages/Meeting'
 import PrivateRoute from './components/PrivateRoutes'
 import { Toaster } from 'react-hot-toast'
 import LobbyPage from './pages/Lobby'
+import CalendarPage from './pages/Calendar'
 
 const router = createBrowserRouter([
   {
@@ -31,6 +32,10 @@ const router = createBrowserRouter([
   {
     path:"/lobby",
     element:<LobbyPage/>
+  },
+  {
+    path:"/calendar",
+    element:<CalendarPage/>
   }
 ])
 
