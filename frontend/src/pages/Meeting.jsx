@@ -73,7 +73,7 @@ const VideoKon = () => {
           localVideoRef.current.srcObject = localStream;
         }
 
-        socketRef.current = io("http://localhost:5000");
+        
 
         socketRef.current.on("connect", () => {
           socketRef.current.emit("join-room", roomId, socketRef.current.id);

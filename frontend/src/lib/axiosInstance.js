@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getCookie, setCookie } from './cookie'; // Adjust the path as needed
 
 const axiosInstance = axios.create({
-    baseURL: 'http://localhost:5000/api/auth/',
+    baseURL: 'http://localhost:5000/api/',
     headers: {
         'Content-Type': 'application/json'
     }

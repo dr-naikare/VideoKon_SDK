@@ -4,8 +4,10 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
-const authRoutes = require("./routes/auth.js");
 const statusmonitor = require("express-status-monitor");
+const routes = require('./routes');
+const redisClient = require('./redis/redis.config');
+const { processNotifications } = require('./redis/Processor');
 
 dotenv.config();
 
@@ -25,7 +27,7 @@ app.use(statusmonitor());
 
 // Connect to MongoDB
 mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch((err) => console.log("MongoDB connection error:", err));
 
@@ -33,7 +35,7 @@ mongoose
 const participants = {};
 
 // Routes
-app.use("/api/auth", authRoutes);
+app.use('/api', routes);
 
 // WebSocket connection
 io.on("connection", (socket) => {
@@ -111,6 +113,9 @@ io.on("connection", (socket) => {
     });
   });
 });
+
+// Start the notification processor
+processNotifications();
 
 // Start the server
 const PORT = process.env.PORT || 5000;

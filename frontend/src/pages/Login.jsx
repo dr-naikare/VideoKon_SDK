@@ -12,7 +12,6 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
 
     try {
       const response = await axios.post(`http://localhost:5000/api/auth/login`, {
@@ -29,7 +28,6 @@ const LoginPage = () => {
         navigate(redirectUrl);
       }
       toast.success('Login successful');
-      // Handle successful login (e.g., store token, redirect)
       setLoading(true);
       setEmail('');
       setPassword('');

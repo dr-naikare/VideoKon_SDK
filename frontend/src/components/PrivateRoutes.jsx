@@ -25,13 +25,18 @@ const PrivateRoute = ({ children }) => {
 
                 if (decodedToken.exp < currentTime) {
                     console.log('Access token expired. Attempting to refresh token');
-                    const response = await axios.post('http://localhost:5000/api/auth/refresh-token', { token: refreshToken });
+                    try {
+                        const response = await axios.post('http://localhost:5000/api/auth/refresh-token', { token: refreshToken });
 
-                    if (response.status === 200) {
-                        setCookie('accesstoken', response.data.token, { path: '/' });
-                        setIsAuthenticated(true);
-                    } else {
-                        console.log('Failed to refresh token. Redirecting to login page');
+                        if (response.status === 200) {
+                            setCookie('accesstoken', response.data.token, { path: '/' });
+                            setIsAuthenticated(true);
+                        } else {
+                            console.log('Failed to refresh token. Server response:', response);
+                            setIsAuthenticated(false);
+                        }
+                    } catch (refreshError) {
+                        console.log('Error refreshing token:', refreshError.response ? refreshError.response.data : refreshError.message);
                         setIsAuthenticated(false);
                     }
                 } else {
@@ -39,7 +44,7 @@ const PrivateRoute = ({ children }) => {
                     setIsAuthenticated(true);
                 }
             } catch (error) {
-                console.log('Error decoding token or refreshing token:', error);
+                console.log('Error decoding token:', error);
                 setIsAuthenticated(false);
             }
         };

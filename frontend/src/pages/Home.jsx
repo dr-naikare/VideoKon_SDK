@@ -13,6 +13,7 @@ import Sidebar from "@/components/Sidebar";
 
 const Home = () => {
   const location = useLocation();
+  
   const[user, setUser] = useState({name: ''});
   const [meetings, setMeetings] = useState([
     { name: "Team Sync", time: "10:00 AM" },
@@ -37,10 +38,9 @@ const Home = () => {
     const fetchUserData = async () => {
       try {
         const response = await axiosInstance.get(
-          "/user"
+          "/auth/user"
         );
-        console.log("User data:", response.data);
-        setUser(response.data);
+        setUser({ name: response.data.name, avatar: response.data.avatar });
         setLoading(false);
       } catch (error) {
         console.error("Error fetching user data:", error);

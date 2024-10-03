@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { v4 as uuidv4 } from "uuid";
 import { CameraIcon, CameraOffIcon, MicIcon, MicOffIcon } from "lucide-react";
 import toast from "react-hot-toast";
-import io from 'socket.io-client';
 
-const socket = io("http://localhost:5000");
+
+
 
 const LobbyPage = () => {
   const [meetingCode, setMeetingCode] = useState("");

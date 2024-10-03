@@ -12,12 +12,9 @@ const generateRefreshToken = async (userId) => {
   });
   const expiryDate = new Date();
   expiryDate.setDate(expiryDate.getDate() + 7);
-  console.log(expiryDate, token, userId);
 
   const refreshToken = new RefreshToken({ token, userId, expiryDate });
   await refreshToken.save();
-  console.log("error nahi hai yaha pe");
-
   return token;
 };
 
@@ -26,7 +23,6 @@ const loginUser = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    console.log(user.name);
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -39,12 +35,9 @@ const loginUser = async (req, res) => {
     }
 
     const accesstoken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "30s",
+      expiresIn: "1h",
     });
     const refreshtoken = await generateRefreshToken(user._id);
-
-    console.log("accessToken", accesstoken);
-    console.log("refreshToken", refreshtoken);
     //res.cookie('refreshToken', rToken, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
     //res.cookie('accesstoken', token, { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
     res
@@ -54,6 +47,7 @@ const loginUser = async (req, res) => {
         redirectUrl: "/",
         accesstoken,
         refreshtoken,
+        user,
       });
   } catch (error) {
     console.error("Error logging in:", error);

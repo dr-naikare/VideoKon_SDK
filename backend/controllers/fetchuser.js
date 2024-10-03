@@ -6,7 +6,7 @@ dotenv.config();
 const fetchUser = async (req, res) => {
     // Use req.userId instead of request.headers.userId
     const userId = req.userId; // This should be set in your authMiddleware
-    console.log(userId);
+
 
     try {
         const user = await User.findById(userId).select('-password'); // Exclude the password field
