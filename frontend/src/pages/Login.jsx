@@ -9,36 +9,32 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
 
     try {
+
       const response = await axios.post(`http://localhost:5000/api/auth/login`, {
         email,
         password
       });
       console.log('Response:', response.data);
       if (response.status === 200) {
-        const { redirectUrl, token } = response.data;
-        setCookie('token', token, { path: '/' });
-        // Redirect to the specified URL
-        navigate(redirectUrl, { state: { currentUser } });
+        const { redirectUrl, accesstoken, refreshtoken } = response.data;
+        console.log("accessToken", accesstoken);
+        console.log("refreshToken", refreshtoken);
+        setCookie('accesstoken', accesstoken, { path: '/' });
+        setCookie('refreshtoken', refreshtoken, { path: '/' });
+        navigate(redirectUrl);
       }
       toast.success('Login successful');
-      // Handle successful login (e.g., store token, redirect)
       setLoading(true);
       setEmail('');
       setPassword('');
     } catch (error) {
       toast.error('Login failed');
       console.error('Error logging in:', error);
-      // Handle login error (e.g., show error message)
     }
-
-    console.log('Email:', email);
-    console.log('Password:', password);
   };
 
   return (

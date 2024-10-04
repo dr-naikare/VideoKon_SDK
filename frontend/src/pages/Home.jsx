@@ -1,23 +1,19 @@
 import { Button } from "@/components/ui/button";
 import {
-  Calendar,
   CalendarCheck,
-  Contact,
-  Edit,
   GroupIcon,
-  HomeIcon,
-  LogOutIcon,
-  Menu,
   PhoneCall,
-  SwitchCameraIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import {  useLocation } from "react-router-dom";
+import { v4 as uuidv4 } from "uuid";
+import axiosInstance from '../lib/axiosInstance';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"; // Assuming ShadCN's Sheet component is here
+import Sidebar from "@/components/Sidebar";
 
 const Home = () => {
   const location = useLocation();
+  
   const[user, setUser] = useState({name: ''});
   const [meetings, setMeetings] = useState([
     { name: "Team Sync", time: "10:00 AM" },
@@ -40,23 +36,11 @@ const Home = () => {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        Navigate("/login");
-        return;
-      }
-
       try {
-        const response = await axios.get(
-          "http://localhost:5000/api/auth/user",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await axiosInstance.get(
+          "/auth/user"
         );
-        console.log("User data:", response.data);
-        setUser(response.data);
+        setUser({ name: response.data.name, avatar: response.data.avatar });
         setLoading(false);
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -96,102 +80,14 @@ const Home = () => {
     window.location.href = "/lobby";
   };
 
+  const handleStartMeeting = () => {
+    const roomId = uuidv4(); // Generate a unique room ID
+    window.location.href = `/meeting/${roomId}`; // Redirect to the meeting room
+  };
+
   return (
     <div className="flex h-screen">
-      {/* Sidebar for desktop */}
-      <div className="hidden md:block w-1/4 bg-gray-900 text-white p-6 flex-col">
-        <div className="flex items-center mb-8">
-          <img src="/logo.jpg" alt="Logo" className="rounded-full w-10 h-10 mr-2" />
-          <h1 className="text-2xl font-bold text-blue-400">VideoKon</h1>
-        </div>
-        <nav className="flex-1">
-          <ul className="space-y-2">
-            <li className="flex items-center py-2 px-4 bg-blue-800 rounded-lg">
-              <HomeIcon />
-              <a href="#" className="ml-3 text-blue-200 hover:text-white">
-                Home
-              </a>
-            </li>
-            <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-              <Calendar />
-              <a href="#" className="ml-3">
-                Calendar
-              </a>
-            </li>
-            <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-              <SwitchCameraIcon />
-              <a href="#" className="ml-3">
-                Recording
-              </a>
-            </li>
-            <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-              <Contact />
-              <a href="#" className="ml-3">
-                Contacts
-              </a>
-            </li>
-          </ul>
-        </nav>
-        <div className="mt-6">
-          <a href="/login" className="flex items-center text-red-400 hover:text-red-500">
-            <LogOutIcon />
-            <span className="ml-3">Log out</span>
-          </a>
-        </div>
-      </div>
-
-      {/* Sidebar for mobile (Sheet) */}
-      <div className="md:hidden fixed">
-        <Sheet>
-          <SheetTrigger asChild>
-            <Button className="m-4">
-              <Menu /> {/* Hamburger Icon */}
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-6 bg-gray-900 text-white">
-            <SheetHeader>
-              <SheetTitle className="flex items-center">
-                <img src="/logo.jpg" alt="Logo" className="rounded-full w-10 h-10 mr-2" />
-                <h1 className="text-2xl font-bold text-blue-400">VideoKon</h1>
-              </SheetTitle>
-            </SheetHeader>
-            <nav className="space-y-4">
-              <ul className="space-y-2">
-                <li className="flex items-center py-2 px-4 bg-blue-800 rounded-lg">
-                  <HomeIcon />
-                  <a href="#" className="ml-3 text-blue-200 hover:text-white">
-                    Home
-                  </a>
-                </li>
-                <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-                  <Calendar />
-                  <a href="#" className="ml-3">
-                    Calendar
-                  </a>
-                </li>
-                <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-                  <SwitchCameraIcon />
-                  <a href="#" className="ml-3">
-                    Recording
-                  </a>
-                </li>
-                <li className="flex items-center py-2 px-4 hover:bg-gray-700 rounded-lg">
-                  <Contact />
-                  <a href="#" className="ml-3">
-                    Contacts
-                  </a>
-                </li>
-              </ul>
-            </nav>
-            <div className="mt-6">
-              <a href="/login" className="flex items-center text-red-400 hover:text-red-500">
-                <LogOutIcon />
-                <span className="ml-3">Log out</span>
-              </a>
-            </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+      <Sidebar/>
 
       {/* Main Content */}
       <div className="w-full bg-gray-100 p-8">
@@ -230,7 +126,7 @@ const Home = () => {
           <div className="bg-white p-6 rounded-lg shadow-lg grid grid-cols-1 gap-4">
             <button className="flex items-center justify-center py-3 px-4 border border-gray-300 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
               <span className="material-icons"><GroupIcon/></span>
-              <a href="/meeting" className="ml-2">Start a meeting</a>
+              <a onClick={handleStartMeeting} className="ml-2">Start a meeting</a>
             </button>
             <Button
               onClick={joinMeeting}
