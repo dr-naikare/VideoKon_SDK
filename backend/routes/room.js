@@ -6,7 +6,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // Create a new room
-router.post('/create', authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
     const roomId = uuidv4(); 
     try {
         const newRoom = new Room({ roomId, creatorId: req.userId });
@@ -18,10 +18,10 @@ router.post('/create', authMiddleware, async (req, res) => {
     }
 });
 
-router.post('/join', authMiddleware, async (req, res) => {
-    const { roomId } = req.body;
+router.get('/:roomId', authMiddleware, async (req, res) => {
+    const roomId = req.params.roomId
     try {
-        const room = await Room.findOne({ roomId });
+        const room = await Room.findOne({ roomId: roomId });
         if (!room) {
             return res.status(404).json({ message: 'Room not found' });
         }

@@ -9,11 +9,11 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
+
       const response = await axios.post(`http://localhost:5000/api/auth/login`, {
         email,
         password
@@ -34,11 +34,7 @@ const LoginPage = () => {
     } catch (error) {
       toast.error('Login failed');
       console.error('Error logging in:', error);
-      // Handle login error (e.g., show error message)
     }
-
-    console.log('Email:', email);
-    console.log('Password:', password);
   };
 
   return (

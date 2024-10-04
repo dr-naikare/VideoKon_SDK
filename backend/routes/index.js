@@ -3,11 +3,10 @@ const router = express.Router();
 const authRoutes = require('./auth');
 const schedulerRoutes = require('./schedularroute');
 const authMiddleware = require('../middleware/authMiddleware');
+const roomRoutes = require('./room');
 
-// Auth routes
 router.use('/auth', authRoutes);
-
-// Scheduler routes
 router.use('/scheduler',authMiddleware, schedulerRoutes);
+router.use('/room', roomRoutes);
 
 module.exports = router;

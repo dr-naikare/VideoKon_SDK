@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { v4 as uuidv4 } from "uuid";
 import { CameraIcon, CameraOffIcon, MicIcon, MicOffIcon } from "lucide-react";
 import toast from "react-hot-toast";
+import { useNavigate } from 'react-router-dom';
+import axiosInstance from '../lib/axiosInstance';
 
-
-
+import { useSocket } from '../components/SocketContext';
 
 const LobbyPage = () => {
+  const navigate = useNavigate();
   const [meetingCode, setMeetingCode] = useState("");
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
@@ -16,6 +17,9 @@ const LobbyPage = () => {
   const videoRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
+  let socketRef = useRef(null);
+  const { initializeSocket } = useSocket();
+
 
   useEffect(() => {
     if (isCameraOn) {
@@ -94,48 +98,30 @@ const LobbyPage = () => {
   };
 
   const handleNewMeeting = async () => {
-    const roomId = uuidv4();
-    // Make a request to your backend to create a room
-    await fetch('/api/rooms', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ roomId }),
+    const socket = initializeSocket();
+    socket.on("connect", async () => {
+      const createRoom = await axiosInstance.post("/room");
+      const roomId = createRoom.data.roomId;
+      navigate(`/meeting/${roomId}`);
     });
-
-    localStorage.setItem("cameraStatus", isCameraOn);
-    localStorage.setItem("micStatus", isMicOn);
-    window.location.href = `/meeting/${roomId}`;
   };
 
   const handleJoinMeeting = async () => {
     if (meetingCode) {
-      // Check if the room exists
-      const response = await fetch(`/api/rooms/${meetingCode}`);
-      if (response.ok) {
-        localStorage.setItem("cameraStatus", isCameraOn);
-        localStorage.setItem("micStatus", isMicOn);
-        // Join the room via Socket.IO
-        socket.emit('joinRoom', meetingCode);
-        window.location.href = `/meeting/${meetingCode}`;
-      } else {
-        toast.error("Room not found!");
+      try {
+        const socket = initializeSocket();
+        socket.on("connect", async () => {
+          const response = await axiosInstance.get(`http://localhost:5000/api/room/${meetingCode}`);
+          if (response.status === 200) {
+            navigate(`/meeting/${meetingCode}`);
+          }
+        });
+      } catch (error) {
+        console.error("Error joining meeting:", error);
+        toast.error("Meeting not found");
       }
-    } else {
-      toast.error("Please enter a meeting code.");
     }
   };
-
-  useEffect(() => {
-    socket.on('userJoined', (userId) => {
-      toast.success(`User ${userId} joined the room!`);
-    });
-
-    return () => {
-      socket.off('userJoined');
-    };
-  }, []);
 
   const getMicLevelColor = () => {
     if (micLevel < 0.3) {

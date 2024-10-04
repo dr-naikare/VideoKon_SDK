@@ -8,6 +8,7 @@ const statusmonitor = require("express-status-monitor");
 const routes = require('./routes');
 const redisClient = require('./redis/redis.config');
 const { processNotifications } = require('./redis/Processor');
+const Room = require('./models/Room'); // Assuming you have a Room model
 
 dotenv.config();
 
@@ -39,73 +40,62 @@ app.use('/api', routes);
 
 // WebSocket connection
 io.on("connection", (socket) => {
-  console.log(`Connection established: ${socket.id}`);
+  console.log(`Connection request received by server from client ${socket.id} at ${new Date().getMilliseconds()}`);
 
-  // Handle joining a room
   socket.on("join-room", (roomId, userId) => {
-    console.log(`User ${userId} joining room ${roomId}`);
+    console.log(` join-room request received by server from client ${userId} at ${new Date().getMilliseconds()}`);
     socket.join(roomId);
-
-    // Initialize participants for the room if not exists
-    if (!participants[roomId]) {
-      participants[roomId] = [];
-    }
-
-    // Add user to the participants list
-    participants[roomId].push({ id: userId });
-    console.log(`User ${userId} joined room ${roomId} successfully`);
-
-    // Emit the updated participants list to everyone in the room
-    io.to(roomId).emit("participants-updated", participants[roomId]);
-
-    // Notify others that a new user has connected
+    console.log(`User ${userId} joined room ${roomId} successfully at ${new Date().getMilliseconds()}`);
     socket.to(roomId).emit("user-connected", userId);
 
     // Add listener for disconnection event
-    socket.on("User-disconnect", (reason) => {
-      console.log(`User ${userId} disconnected from room ${roomId} - Reason: ${reason}`);
-      socket.leave(roomId);
-
-      // Remove user from the participants list
-      participants[roomId] = participants[roomId].filter((user) => user.id !== userId);
-
-      // Emit the updated participants list
-      io.to(roomId).emit("participants-updated", participants[roomId]);
-
-      // Notify others in the room that the user has disconnected
-      socket.to(roomId).emit("user-disconnected", userId);
-
-      // Clean up if the room is empty
-      if (participants[roomId].length === 0) {
-        delete participants[roomId];
+    socket.on("User-disconnect", async (reason) => {
+      console.log(
+        `User ${userId} disconnected from room ${roomId} - Reason: ${reason}`
+      );
+      
+      // Check if the room is empty and clean it up if needed
+      const roomUsers = io.sockets.adapter.rooms.get(roomId);
+      if (roomUsers && roomUsers.size === 1) {
+        await Room.findByIdAndUpdate(roomId, { active: false }, (err, room) => {
+          if (err) {
+            console.error(`Error updating room ${roomId}:`, err);
+          } else {
+            console.log(`Room ${roomId} marked as inactive.`);
+          }
+        });
         console.log(`Room ${roomId} is empty. Cleaning up.`);
+        // Perform cleanup operations (e.g., remove data, release resources)
       }
+      socket.leave(roomId);
+      socket.to(roomId).emit("user-disconnected", userId);
     });
   });
 
-  // Handle offer from a user
   socket.on("offer", (data) => {
-    console.log(`Offer from ${data.userId} to ${data.targetUserId} received.`);
+    console.log(`Offer by client ${data.userId} for ${data.targetUserId} received by server at ${new Date().getMilliseconds()}`);
+    
+    const offerToEmit = typeof data.offer === "string" ? JSON.parse(data.offer) : data.offer;
+    
     socket.to(data.targetUserId).emit("offer", {
-      offer: data.offer,
+      offer: offerToEmit,
       roomId: data.roomId,
       userId: data.userId,
     });
+    console.log(`Offer by client ${data.userId} for ${data.targetUserId} emitted by server at ${new Date().getMilliseconds()}`);
   });
 
-  // Handle answer from a user
   socket.on("answer", (data) => {
-    console.log(`Answer from ${data.userId} to ${data.targetUserId} received.`);
+    console.log(`Answer by client ${data.userId} for ${data.targetUserId} received by server at ${new Date().getMilliseconds()}`);
     socket.to(data.targetUserId).emit("answer", {
       answer: data.answer,
       roomId: data.roomId,
       userId: data.userId,
     });
+    console.log(`Answer by client ${data.userId} for ${data.targetUserId} emitted by server at ${new Date().getMilliseconds()}`);
   });
 
-  // Handle ICE candidates
   socket.on("ice-candidate", (data) => {
-    console.log(`ICE candidate from ${data.userId} to ${data.targetUserId} received.`);
     socket.to(data.targetUserId).emit("ice-candidate", {
       candidate: data.candidate,
       roomId: data.roomId,
