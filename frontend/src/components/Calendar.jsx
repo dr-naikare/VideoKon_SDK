@@ -63,11 +63,32 @@ const Calendar = () => {
     }
   };
 
-  const handleAddEvent = () => {
+  const handleAddEvent = async () => {
     if (newEvent.title && newEvent.date) {
-      setEvents((prev) => [...prev, { id: Date.now(), ...newEvent }]); // Use a timestamp for a simple unique ID
-      setNewEvent({ title: "", date: "", time: "", priority: "", description: "" }); // Reset the form
-      setIsAddEventOpen(false);
+      const eventToAdd = { id: Date.now(), ...newEvent }; // Create the event object
+
+      try {
+        const response = await fetch('/api/scheduler', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(eventToAdd), // Send the event data as JSON
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to add event');
+        }
+
+        const data = await response.json(); // Optionally handle the response data
+        console.log('Event added:', data);
+
+        setEvents((prev) => [...prev, eventToAdd]); // Update local state
+        setNewEvent({ title: "", date: "", time: "", priority: "", description: "" });
+        setIsAddEventOpen(false);
+      } catch (error) {
+        console.error('Error adding event:', error); // Handle the error
+      }
     }
   };
 
